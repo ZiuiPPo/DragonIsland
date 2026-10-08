@@ -1,18 +1,69 @@
-# Build and Release Folders
-bin-debug/
-bin-release/
-[Oo]bj/
-[Bb]in/
+# ============================================================
+# Milky Frog Stead — Git 忽略规则
+# 项目结构：仓库根目录 D:\MilkyFrogStead
+#           Godot 工程在子目录 milky-frog-stead/
+# 无前导斜杠的规则在任意层级生效，因此同时覆盖子目录。
+# ============================================================
 
-# Other files and folders
-.settings/
+# ---------- Godot 4 ----------
+# 引擎导入缓存 / 编辑器缓存，必须忽略（本地生成，体积大且随机器变化）
+.godot/
+# 旧版 Godot 3 的导入缓存（保险起见）
+.import/
 
-# Executables
-*.swf
-*.air
-*.ipa
-*.apk
+# 导出产物
+export/
+build/
+*.translation
 
-# Project files, i.e. `.project`, `.actionScriptProperties` and `.flexProperties`
-# should NOT be excluded as they contain compiler settings and other important
-# information for Eclipse / Flash Builder.
+# 导出配置的备份文件（export_presets.cfg 本身应当提交）
+export_presets.cfg.bak
+*.export.bak
+
+# Mono / .NET (C#) 相关
+.mono/
+data_*/
+mono_crash.*.json
+
+# ---------- Android ----------
+/android/
+*.keystore
+!debug.keystore
+*.jks
+
+# ---------- 编辑器 / IDE ----------
+.vscode/
+!.vscode/settings.json
+!.vscode/launch.json
+.idea/
+*.sublime-workspace
+*.sublime-project
+*.code-workspace
+
+# ---------- 操作系统垃圾文件 ----------
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# ---------- 临时 / 日志文件 ----------
+*.log
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+*.bak
+*.orig
+*.rej
+
+# ---------- 本地私有配置（不要提交密钥） ----------
+.env
+.env.local
+*.local.cfg
