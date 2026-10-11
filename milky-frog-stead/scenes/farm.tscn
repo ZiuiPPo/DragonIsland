@@ -1,0 +1,45 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/sprites/backgrounds/farm.png" id="1_farm"]
+[ext_resource type="PackedScene" path="res://scenes/nailong.tscn" id="2_nailong"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_h"]
+size = Vector2(2448, 200)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_v"]
+size = Vector2(200, 2448)
+
+[node name="农场" type="Node2D"]
+
+[node name="地面" type="Sprite2D" parent="."]
+texture = ExtResource("1_farm")
+
+[node name="边界" type="StaticBody2D" parent="."]
+
+[node name="上" type="CollisionShape2D" parent="边界"]
+position = Vector2(0, -1124)
+shape = SubResource("RectangleShape2D_wall_h")
+
+[node name="下" type="CollisionShape2D" parent="边界"]
+position = Vector2(0, 1124)
+shape = SubResource("RectangleShape2D_wall_h")
+
+[node name="左" type="CollisionShape2D" parent="边界"]
+position = Vector2(-1124, 0)
+shape = SubResource("RectangleShape2D_wall_v")
+
+[node name="右" type="CollisionShape2D" parent="边界"]
+position = Vector2(1124, 0)
+shape = SubResource("RectangleShape2D_wall_v")
+
+[node name="物件" type="Node2D" parent="."]
+y_sort_enabled = true
+
+[node name="奶龙" parent="物件" instance=ExtResource("2_nailong")]
+position = Vector2(0, 200)
+
+[node name="Camera2D" parent="物件/奶龙" index="2"]
+limit_left = -1024
+limit_top = -1024
+limit_right = 1024
+limit_bottom = 1024
