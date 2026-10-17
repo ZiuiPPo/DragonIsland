@@ -1,0 +1,8 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/jobs/wander_job.gd" id="1_wander"]
+
+[resource]
+script = ExtResource("1_wander")
+radius = Vector2(180, 120)
+wait_time_range = Vector2(0.6, 1.8)

@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://2s17ayjig21q"]
 
-[ext_resource type="Texture2D" uid="uid://yc1x6k62xlmb" path="res://assets/sprites/backgrounds/farm.png" id="1_kjpqf"]
+[ext_resource type="PackedScene" uid="uid://do4shqjy2e3ob" path="res://scenes/npc/npc.tscn" id="1_jjgid"]
+[ext_resource type="Texture2D" uid="uid://cwryh2lt8fal7" path="res://assets/sprites/backgrounds/scene_base_farm.png" id="1_k3ns2"]
 [ext_resource type="PackedScene" path="res://scenes/nailong.tscn" id="2_nailong"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_h"]
@@ -12,8 +13,7 @@ size = Vector2(200, 2448)
 [node name="农场" type="Node2D" unique_id=1870938765]
 
 [node name="地面" type="Sprite2D" parent="." unique_id=509433686]
-texture_filter = 1
-texture = ExtResource("1_kjpqf")
+texture = ExtResource("1_k3ns2")
 
 [node name="边界" type="StaticBody2D" parent="." unique_id=700211074]
 
@@ -38,3 +38,5 @@ y_sort_enabled = true
 
 [node name="奶龙" parent="物件" unique_id=721278887 instance=ExtResource("2_nailong")]
 position = Vector2(0, 200)
+
+[node name="Npc" parent="." unique_id=1864727420 instance=ExtResource("1_jjgid")]

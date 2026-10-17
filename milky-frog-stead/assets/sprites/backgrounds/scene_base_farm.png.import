@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bb7h58iykln03"
-path="res://.godot/imported/farm_plus.png-287ce3200a7b069a6acb892609085649.ctex"
+uid="uid://cwryh2lt8fal7"
+path="res://.godot/imported/scene_base_farm.png-f6f61cc5221eb782c428d84db16c0f9b.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/backgrounds/farm_plus.png"
-dest_files=["res://.godot/imported/farm_plus.png-287ce3200a7b069a6acb892609085649.ctex"]
+source_file="res://assets/sprites/backgrounds/scene_base_farm.png"
+dest_files=["res://.godot/imported/scene_base_farm.png-f6f61cc5221eb782c428d84db16c0f9b.ctex"]
 
 [params]
 
