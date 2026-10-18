@@ -1,13 +1,13 @@
 [gd_scene format=3 uid="uid://do4shqjy2e3ob"]
 
 [ext_resource type="Script" uid="uid://dv12rgrh0jk6l" path="res://scripts/npc.gd" id="1_sspvn"]
-[ext_resource type="Texture2D" uid="uid://dhqgmjwtthwyj" path="res://assets/sprites/npc1_right.png" id="2_r4bp4"]
+[ext_resource type="Texture2D" uid="uid://dhqgmjwtthwyj" path="res://assets/sprites/npcs/npc1_right.png" id="2_r4bp4"]
 [ext_resource type="Script" uid="uid://ch8g5a8kxj2d5" path="res://scripts/npc_locomotion.gd" id="3_dpyoa"]
-[ext_resource type="Texture2D" uid="uid://c0kbey6qqc23v" path="res://assets/sprites/npc1_left.png" id="3_woxlu"]
+[ext_resource type="Texture2D" uid="uid://c0kbey6qqc23v" path="res://assets/sprites/npcs/npc1_left.png" id="3_woxlu"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_ifow5"]
-radius = 11.0
-height = 60.0
+radius = 26.0
+height = 92.0
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_evswx"]
 atlas = ExtResource("3_woxlu")
@@ -144,19 +144,18 @@ animations = [{
 "speed": 7.0
 }]
 
-[node name="Npc" type="CharacterBody2D" unique_id=928113493]
+[node name="Npc1" type="CharacterBody2D" unique_id=928113493]
 script = ExtResource("1_sspvn")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1593007124]
-position = Vector2(1, -4)
-rotation = -1.5707964
+position = Vector2(0, -46)
 shape = SubResource("CapsuleShape2D_ifow5")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=277338215]
-position = Vector2(3, -54)
+texture_filter = 1
+position = Vector2(-1, -55)
 sprite_frames = SubResource("SpriteFrames_wvhbo")
 animation = &"move_right"
-frame_progress = 0.49977544
 
 [node name="NpcLocomotion" type="NavigationAgent2D" parent="." unique_id=1399005553]
 script = ExtResource("3_dpyoa")

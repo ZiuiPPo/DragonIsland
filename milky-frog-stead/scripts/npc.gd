@@ -37,6 +37,10 @@ extends CharacterBody2D
 ## 让一群 NPC 快慢不同 —— 同一个速度跑 5 个，一眼就看得出是机器人
 @export var speed_jitter: Vector2 = Vector2(0.85, 1.15)
 
+## 撞上障碍后，停多久再挑下一个点（秒）。
+## 调大会显得"撞一下愣一会儿"，调小会在墙角处频繁重挑
+@export var block_wait: float = 0.35
+
 
 @export_group("出生")
 ## 出生点随机：NPC 会在活动范围内随机一个位置出现。
@@ -61,6 +65,13 @@ const MOVE_ANIM_SPEED := 8.0
 ## 取一个很小的正数，是为了让"纯上下移动"(velocity.x 正好为 0) 不改朝向，
 ## 同时挡住浮点噪声 —— 否则 x 在 0 附近抖时朝向会左右闪
 const FACING_EPSILON := 0.5
+
+## 判定"被挡住"：这一帧实际走的路程，不到想走的路程的这个比例。
+##
+## 不能只看"有没有发生碰撞"：贴着墙**侧向滑行**时每帧都在碰撞，
+## 但那种情况 NPC 其实在正常前进，一碰撞就停会在墙边一顿一顿地抽搐。
+## 看比例就分得开：正面撞墙 ≈ 0%，沿墙滑行通常还有 60~80%。
+const BLOCKED_PROGRESS_RATIO := 0.35
 
 
 # ---------------------------------------------------------------- 节点
@@ -119,9 +130,19 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	# ── 执行：每帧都做 ──
-	velocity = locomotion.tick(delta)
+	# 先存一份「腿想要的速度」。move_and_slide() 会把 velocity 改成
+	# **沿墙滑行之后**的结果，撞墙判断必须拿"想要的那份"比才有意义
+	var intended := locomotion.tick(delta)
+	var start_pos := global_position
+	velocity = intended
 	move_and_slide()
 	_update_anim()
+
+	# ── 撞上障碍：放弃这个目标，停一下再重挑 ──
+	if locomotion.has_target() and _is_blocked(intended, start_pos, delta):
+		locomotion.stop()
+		_wait_left = block_wait
+		return
 
 	# ── 决策：只在"手上没活 + 等够了"时才做 ──
 	if locomotion.has_target():
@@ -145,6 +166,25 @@ func _on_stuck() -> void:
 	# 移动层已经把 _has_target 清成 false 了，这里只需要停一下再挑下一个，
 	# 否则会变成"撞 1.5 秒 → 立刻重挑 → 又撞 1.5 秒"的循环
 	_wait_left = 0.3
+
+
+## 这一帧是不是被障碍挡住了。
+##
+## 为什么不直接用 get_slide_collision_count() > 0：
+## 贴着墙**侧向滑行**时每帧都有碰撞，但那种情况 NPC 其实在正常前进；
+## 只要一有碰撞就停，它会在墙边一顿一顿地抽搐。
+##
+## 所以判据是「实际走了多少」对「想走多少」的比例：
+##   正面撞上   → 实际 ≈ 0          → 判为被挡
+##   沿墙滑行   → 实际 ≈ 想要的 70% → 继续走
+##   卡进死角   → 实际 ≈ 0          → 判为被挡
+func _is_blocked(intended: Vector2, start_pos: Vector2, delta: float) -> bool:
+	var speed := intended.length()
+	if speed < MOVE_ANIM_SPEED:
+		return false                                      # 这一帧本来就没打算走（在刹车/待机）
+	var wanted := speed * delta                           # 本来该走这么远
+	var actual := global_position.distance_to(start_pos)  # 实际走了这么远
+	return actual < wanted * BLOCKED_PROGRESS_RATIO
 
 
 ## 挑下一个目标点。两种策略混用：
@@ -221,6 +261,12 @@ func _update_anim() -> void:
 	if moving:
 		animated_sprite_2d.speed_scale = clampf(
 			velocity.length() / maxf(locomotion.move_speed, 1.0), 0.5, 2.0)
+	else:
+		# 必须显式归 1.0。
+		# speed_scale 是**角色身上的属性**，会从走路状态残留下来 ——
+		# 单帧 idle 看不出来（它本来就不动），但多帧 idle 会按错误速度播：
+		# 快走之后停下来发呆，呼吸动画会明显偏快 / 偏慢。
+		animated_sprite_2d.speed_scale = 1.0
 
 
 ## 动画名如果和场景里对不上，Godot 不会报错 —— 只会静默地什么都不播。

@@ -1,8 +1,0 @@
-[gd_resource type="Resource" load_steps=2 format=3]
-
-[ext_resource type="Script" path="res://scripts/jobs/patrol_job.gd" id="1_patrol"]
-
-[resource]
-script = ExtResource("1_patrol")
-offsets = Array[Vector2]([Vector2(-600, -350), Vector2(600, -350), Vector2(600, 350), Vector2(-600, 350)])
-wait_time_range = Vector2(1, 2)

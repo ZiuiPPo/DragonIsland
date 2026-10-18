@@ -2,9 +2,8 @@
 
 [ext_resource type="PackedScene" uid="uid://do4shqjy2e3ob" path="res://scenes/npc/npc.tscn" id="1_jjgid"]
 [ext_resource type="Texture2D" uid="uid://cwryh2lt8fal7" path="res://assets/sprites/backgrounds/scene_base_farm.png" id="1_k3ns2"]
-[ext_resource type="PackedScene" path="res://scenes/nailong.tscn" id="2_nailong"]
-[ext_resource type="Texture2D" uid="uid://dgcevbq5dyt35" path="res://assets/tilesets/wheat_stages.png" id="5_5q3ck"]
-[ext_resource type="Texture2D" uid="uid://ciql3vtt7bhab" path="res://assets/tilesets/wheat_happy.png" id="5_7byxm"]
+[ext_resource type="PackedScene" uid="uid://da2meef22k0ha" path="res://scenes/npc/npc_2.tscn" id="4_k3ns2"]
+[ext_resource type="Script" uid="uid://cywne0lnoahul" path="res://scripts/core/camera_controller.gd" id="5_camera"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_h"]
 size = Vector2(2448, 200)
@@ -12,15 +11,10 @@ size = Vector2(2448, 200)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_v"]
 size = Vector2(200, 2448)
 
-[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_5q3ck"]
-load_path = "res://.godot/imported/wheat.png-80c69a1e32d49f36616f0264170ce247.ctex"
-
-[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_6buwl"]
-load_path = "res://.godot/imported/wheat_stages.png-f916d9e0a4e6cd5df59b7a6800e52b20.ctex"
-
 [node name="农场" type="Node2D" unique_id=1870938765]
 
 [node name="地面" type="Sprite2D" parent="." unique_id=509433686]
+texture_filter = 1
 position = Vector2(29, 228)
 texture = ExtResource("1_k3ns2")
 
@@ -45,29 +39,14 @@ shape = SubResource("RectangleShape2D_wall_v")
 [node name="物件" type="Node2D" parent="." unique_id=614486412]
 y_sort_enabled = true
 
-[node name="奶龙" parent="物件" unique_id=721278887 instance=ExtResource("2_nailong")]
+[node name="Npc1" parent="." unique_id=1864727420 instance=ExtResource("1_jjgid")]
 texture_filter = 1
-position = Vector2(0, 200)
-
-[node name="Npc" parent="." unique_id=1864727420 instance=ExtResource("1_jjgid")]
 position = Vector2(-486, -130)
 
-[node name="Wheat" type="Sprite2D" parent="." unique_id=2002087265]
-position = Vector2(-358, 315)
-texture = SubResource("CompressedTexture2D_5q3ck")
+[node name="Npc2" parent="." unique_id=650547407 instance=ExtResource("4_k3ns2")]
 
-[node name="WheatStages" type="Sprite2D" parent="." unique_id=14747423]
-position = Vector2(-194, 436)
-texture = SubResource("CompressedTexture2D_6buwl")
-
-[node name="WheatStages2" type="Sprite2D" parent="." unique_id=975590110]
-position = Vector2(265, 235)
-texture = ExtResource("5_5q3ck")
-
-[node name="WheatStages3" type="Sprite2D" parent="." unique_id=152194274]
-position = Vector2(-114, 527)
-texture = ExtResource("5_5q3ck")
-
-[node name="WheatHappy" type="Sprite2D" parent="." unique_id=896577452]
-position = Vector2(-166, 636)
-texture = ExtResource("5_7byxm")
+[node name="Camera2D" type="Camera2D" parent="." unique_id=2073592116]
+position = Vector2(0, -18)
+script = ExtResource("5_camera")
+limits_enabled = true
+limit_bounds = Rect2(-643, -412, 1344, 1280)
