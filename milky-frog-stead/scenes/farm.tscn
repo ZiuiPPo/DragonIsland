@@ -48,3 +48,49 @@ position = Vector2(0, -18)
 script = ExtResource("5_camera")
 limits_enabled = true
 limit_bounds = Rect2(-643, -412, 1344, 1280)
+
+[node name="Control" type="Control" parent="." unique_id=796914265]
+layout_mode = 3
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TextureRect" type="TextureRect" parent="Control" unique_id=567964705]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Control" unique_id=1080854198]
+custom_minimum_size = Vector2(500, 200)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -250.0
+offset_top = -11.0
+offset_right = 250.0
+offset_bottom = 189.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Begin" type="Button" parent="Control/VBoxContainer" unique_id=560532400]
+layout_mode = 2
+text = "开始游戏"
+
+[node name="Gameset" type="Button" parent="Control/VBoxContainer" unique_id=210463779]
+layout_mode = 2
+text = "游戏设置"
+
+[node name="Exit" type="Button" parent="Control/VBoxContainer" unique_id=180289090]
+layout_mode = 2
+text = "退出游戏"
