@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://2s17ayjig21q"]
 
 [ext_resource type="PackedScene" uid="uid://do4shqjy2e3ob" path="res://scenes/npc/npc.tscn" id="1_jjgid"]
-[ext_resource type="Texture2D" uid="uid://cwryh2lt8fal7" path="res://assets/sprites/backgrounds/scene_base_farm.png" id="1_k3ns2"]
+[ext_resource type="PackedScene" uid="uid://dc16olu8klj86" path="res://scenes/farm/level.tscn" id="1_k3ns2"]
 [ext_resource type="PackedScene" uid="uid://da2meef22k0ha" path="res://scenes/npc/npc_2.tscn" id="4_k3ns2"]
 [ext_resource type="Script" uid="uid://cywne0lnoahul" path="res://scripts/core/camera_controller.gd" id="5_camera"]
 
@@ -13,10 +13,8 @@ size = Vector2(200, 2448)
 
 [node name="农场" type="Node2D" unique_id=1870938765]
 
-[node name="地面" type="Sprite2D" parent="." unique_id=509433686]
+[node name="Level" parent="." unique_id=570364745 instance=ExtResource("1_k3ns2")]
 texture_filter = 1
-position = Vector2(29, 228)
-texture = ExtResource("1_k3ns2")
 
 [node name="边界" type="StaticBody2D" parent="." unique_id=700211074]
 
@@ -41,7 +39,7 @@ y_sort_enabled = true
 
 [node name="Npc1" parent="." unique_id=1864727420 instance=ExtResource("1_jjgid")]
 texture_filter = 1
-position = Vector2(-486, -130)
+position = Vector2(65, 97)
 
 [node name="Npc2" parent="." unique_id=650547407 instance=ExtResource("4_k3ns2")]
 

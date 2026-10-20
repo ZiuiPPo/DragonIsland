@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dvanfvqsqyp5a"
-path="res://.godot/imported/farmland.png-f373671c19c294404d3c26dc8b092d82.ctex"
+uid="uid://dcvvwimuocu28"
+path="res://.godot/imported/apple.png-797ff4132d0555caf21e7486f78f5514.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/tilesets/farmland.png"
-dest_files=["res://.godot/imported/farmland.png-f373671c19c294404d3c26dc8b092d82.ctex"]
+source_file="res://assets/icons/apple.png"
+dest_files=["res://.godot/imported/apple.png-797ff4132d0555caf21e7486f78f5514.ctex"]
 
 [params]
 

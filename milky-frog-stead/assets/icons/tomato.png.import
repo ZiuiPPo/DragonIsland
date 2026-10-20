@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dsk3nlmbts0hs"
-path="res://.godot/imported/npc2_idle_left.png-f17920aec3e1db4af67db6f8d98ed09c.ctex"
+uid="uid://b06xbyyxll0ii"
+path="res://.godot/imported/tomato.png-758468140470cab42147a41c67b8c150.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/npcs/npc2_idle_left.png"
-dest_files=["res://.godot/imported/npc2_idle_left.png-f17920aec3e1db4af67db6f8d98ed09c.ctex"]
+source_file="res://assets/icons/tomato.png"
+dest_files=["res://.godot/imported/tomato.png-758468140470cab42147a41c67b8c150.ctex"]
 
 [params]
 

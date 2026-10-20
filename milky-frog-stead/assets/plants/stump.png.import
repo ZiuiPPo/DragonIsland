@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bsxsqsj2socu0"
-path="res://.godot/imported/npc2_move_left.png-706019c418f514863d2365d0efcfccab.ctex"
+uid="uid://c3qkgdvdnshvw"
+path="res://.godot/imported/stump.png-c4d50f1d5e49e8919064df7e8645bafe.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/npcs/npc2_move_left.png"
-dest_files=["res://.godot/imported/npc2_move_left.png-706019c418f514863d2365d0efcfccab.ctex"]
+source_file="res://assets/plants/stump.png"
+dest_files=["res://.godot/imported/stump.png-c4d50f1d5e49e8919064df7e8645bafe.ctex"]
 
 [params]
 

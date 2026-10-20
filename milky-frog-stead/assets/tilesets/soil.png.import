@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b07kb0q74b8no"
-path="res://.godot/imported/npc2_idle_right.png-6e17e2879af5b8ecd078f0466e2fa403.ctex"
+uid="uid://dvanfvqsqyp5a"
+path="res://.godot/imported/soil.png-ff2d723a0be3c09f3bf35c1ff35f5d03.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/npcs/npc2_idle_right.png"
-dest_files=["res://.godot/imported/npc2_idle_right.png-6e17e2879af5b8ecd078f0466e2fa403.ctex"]
+source_file="res://assets/tilesets/soil.png"
+dest_files=["res://.godot/imported/soil.png-ff2d723a0be3c09f3bf35c1ff35f5d03.ctex"]
 
 [params]
 

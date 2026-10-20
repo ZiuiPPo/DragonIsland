@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://uhrijffyj0mn"
-path="res://.godot/imported/farmsize_other_00001_.png-f7848fd16e40571a5969d81d7e9d68e3.ctex"
+uid="uid://c2p5pje1t2yy7"
+path="res://.godot/imported/npc2_right.png-e18481ae1e7757aaf1e41113c51ba5f7.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/tilesets/farmsize_other_00001_.png"
-dest_files=["res://.godot/imported/farmsize_other_00001_.png-f7848fd16e40571a5969d81d7e9d68e3.ctex"]
+source_file="res://assets/sprites/npcs/npc2_right.png"
+dest_files=["res://.godot/imported/npc2_right.png-e18481ae1e7757aaf1e41113c51ba5f7.ctex"]
 
 [params]
 

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ciql3vtt7bhab"
-path="res://.godot/imported/wheat_happy.png-4e9283f1d20e0f8008b095be89b53ef1.ctex"
+uid="uid://wieddyf0m7dc"
+path="res://.godot/imported/tomato.png-54f641aded3459f008222ff21407de25.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/tilesets/wheat_happy.png"
-dest_files=["res://.godot/imported/wheat_happy.png-4e9283f1d20e0f8008b095be89b53ef1.ctex"]
+source_file="res://assets/plants/tomato.png"
+dest_files=["res://.godot/imported/tomato.png-54f641aded3459f008222ff21407de25.ctex"]
 
 [params]
 
