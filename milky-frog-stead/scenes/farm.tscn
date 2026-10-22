@@ -4,38 +4,12 @@
 [ext_resource type="PackedScene" uid="uid://dc16olu8klj86" path="res://scenes/farm/level.tscn" id="1_k3ns2"]
 [ext_resource type="PackedScene" uid="uid://da2meef22k0ha" path="res://scenes/npc/npc_2.tscn" id="4_k3ns2"]
 [ext_resource type="Script" uid="uid://cywne0lnoahul" path="res://scripts/core/camera_controller.gd" id="5_camera"]
+[ext_resource type="PackedScene" uid="uid://bg7413xx822vf" path="res://scenes/ui/sidebar.tscn" id="6_sidebar"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_h"]
-size = Vector2(2448, 200)
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_v"]
-size = Vector2(200, 2448)
-
-[node name="农场" type="Node2D" unique_id=1870938765]
+[node name="Framland" type="Node2D" unique_id=1870938765]
 
 [node name="Level" parent="." unique_id=570364745 instance=ExtResource("1_k3ns2")]
 texture_filter = 1
-
-[node name="边界" type="StaticBody2D" parent="." unique_id=700211074]
-
-[node name="上" type="CollisionShape2D" parent="边界" unique_id=1412287697]
-position = Vector2(0, -1124)
-shape = SubResource("RectangleShape2D_wall_h")
-
-[node name="下" type="CollisionShape2D" parent="边界" unique_id=1588601773]
-position = Vector2(-1, 1120)
-shape = SubResource("RectangleShape2D_wall_h")
-
-[node name="左" type="CollisionShape2D" parent="边界" unique_id=703557608]
-position = Vector2(-1033, 2)
-shape = SubResource("RectangleShape2D_wall_v")
-
-[node name="右" type="CollisionShape2D" parent="边界" unique_id=1673978815]
-position = Vector2(1216, 1)
-shape = SubResource("RectangleShape2D_wall_v")
-
-[node name="物件" type="Node2D" parent="." unique_id=614486412]
-y_sort_enabled = true
 
 [node name="Npc1" parent="." unique_id=1864727420 instance=ExtResource("1_jjgid")]
 texture_filter = 1
@@ -94,3 +68,8 @@ text = "游戏设置"
 [node name="Exit" type="Button" parent="Control/VBoxContainer" unique_id=180289090]
 layout_mode = 2
 text = "退出游戏"
+
+[node name="UiLayer" type="CanvasLayer" parent="."]
+layer = 10
+
+[node name="Sidebar" parent="UiLayer" instance=ExtResource("6_sidebar")]

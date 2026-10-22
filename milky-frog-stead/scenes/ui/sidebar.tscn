@@ -1,0 +1,215 @@
+[gd_scene format=3 uid="uid://bg7413xx822vf"]
+
+[ext_resource type="Script" uid="uid://bbr56hr63hyj0" path="res://scripts/ui/sidebar.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://8krdjkjplqma" path="res://scripts/ui/sidebar_icon_button.gd" id="2_icon_script"]
+[ext_resource type="PackedScene" path="res://scenes/ui/menus/menu_npc_status.tscn" id="3_menu_npc"]
+[ext_resource type="PackedScene" path="res://scenes/ui/menus/menu_clock.tscn" id="4_menu_clock"]
+[ext_resource type="PackedScene" path="res://scenes/ui/menus/menu_warehouse.tscn" id="5_menu_warehouse"]
+[ext_resource type="Texture2D" uid="uid://k3l7s7o0q2i3" path="res://assets/icons/npc_status.png" id="6_icon_npc"]
+[ext_resource type="Texture2D" uid="uid://bymita4x2dx4l" path="res://assets/icons/clock.png" id="7_icon_clock"]
+[ext_resource type="Texture2D" uid="uid://dp1ucdta1xyxb" path="res://assets/icons/warehouse.png" id="8_icon_warehouse"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_menu_bg"]
+bg_color = Color(0.5846119, 0.5531883, 0.42044926, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_color = Color(0.5812856, 0.48489368, 0.2711067, 1)
+corner_radius_top_left = 20
+corner_radius_top_right = 20
+corner_radius_bottom_right = 20
+corner_radius_bottom_left = 20
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_icon_normal"]
+bg_color = Color(0.73612696, 0.66128623, 0.45965916, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_bottom = 2
+border_color = Color(0.5406917, 0.4227475, 0.202402, 1)
+corner_radius_top_left = 15
+corner_radius_bottom_left = 15
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_icon_pressed"]
+bg_color = Color(0.62, 0.54, 0.37, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_bottom = 2
+border_color = Color(0.45, 0.34000003, 0.16, 1)
+corner_radius_top_left = 15
+corner_radius_bottom_left = 15
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_icon_hover"]
+bg_color = Color(0.8, 0.73, 0.53, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_bottom = 2
+border_color = Color(0.62000006, 0.5, 0.26, 1)
+corner_radius_top_left = 15
+corner_radius_bottom_left = 15
+
+[sub_resource type="ButtonGroup" id="ButtonGroup_nav"]
+allow_unpress = true
+
+[node name="Sidebar" type="MarginContainer" unique_id=327060358]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 40.0
+offset_top = -1.0
+offset_right = 40.0
+offset_bottom = -1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 4
+mouse_filter = 2
+theme_override_constants/margin_left = 40
+theme_override_constants/margin_top = 40
+theme_override_constants/margin_right = 40
+theme_override_constants/margin_bottom = 40
+script = ExtResource("1_script")
+
+[node name="Layout" type="HBoxContainer" parent="." unique_id=1737335573]
+layout_mode = 2
+size_flags_horizontal = 8
+size_flags_vertical = 0
+theme_override_constants/separation = 2
+alignment = 2
+
+[node name="MenuArea" type="Control" parent="Layout" unique_id=184150714]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(300, 0)
+clip_contents = true
+layout_mode = 2
+mouse_filter = 2
+
+[node name="MenuPanel" type="Control" parent="Layout/MenuArea" unique_id=102970270]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="MenuBackground" type="Panel" parent="Layout/MenuArea/MenuPanel" unique_id=1132772651]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_menu_bg")
+
+[node name="MenuHolder" type="MarginContainer" parent="Layout/MenuArea/MenuPanel" unique_id=886435697]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="IconColumn" type="VBoxContainer" parent="Layout" unique_id=1209159064]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 8
+size_flags_vertical = 0
+theme_override_constants/separation = 30
+
+[node name="NpcStatusButton" type="Button" parent="Layout/IconColumn" unique_id=2064832432]
+custom_minimum_size = Vector2(60, 60)
+layout_mode = 2
+tooltip_text = "员工状态"
+focus_mode = 0
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_icon_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_icon_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_icon_hover")
+theme_override_styles/hover_pressed = SubResource("StyleBoxFlat_icon_pressed")
+toggle_mode = true
+button_group = SubResource("ButtonGroup_nav")
+script = ExtResource("2_icon_script")
+menu_scene = ExtResource("3_menu_npc")
+
+[node name="Icon" type="TextureRect" parent="Layout/IconColumn/NpcStatusButton" unique_id=2032501457]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = 12.0
+offset_right = -12.0
+offset_bottom = -12.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("6_icon_npc")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ClockButton" type="Button" parent="Layout/IconColumn" unique_id=1311177739]
+custom_minimum_size = Vector2(60, 60)
+layout_mode = 2
+tooltip_text = "时间"
+focus_mode = 0
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_icon_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_icon_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_icon_hover")
+theme_override_styles/hover_pressed = SubResource("StyleBoxFlat_icon_pressed")
+toggle_mode = true
+button_group = SubResource("ButtonGroup_nav")
+script = ExtResource("2_icon_script")
+menu_scene = ExtResource("4_menu_clock")
+
+[node name="Icon" type="TextureRect" parent="Layout/IconColumn/ClockButton" unique_id=1267943028]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = 12.0
+offset_right = -12.0
+offset_bottom = -12.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("7_icon_clock")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="WarehouseButton" type="Button" parent="Layout/IconColumn" unique_id=601797867]
+custom_minimum_size = Vector2(60, 60)
+layout_mode = 2
+tooltip_text = "仓库"
+focus_mode = 0
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_icon_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_icon_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_icon_hover")
+theme_override_styles/hover_pressed = SubResource("StyleBoxFlat_icon_pressed")
+toggle_mode = true
+button_group = SubResource("ButtonGroup_nav")
+script = ExtResource("2_icon_script")
+menu_scene = ExtResource("5_menu_warehouse")
+
+[node name="Icon" type="TextureRect" parent="Layout/IconColumn/WarehouseButton" unique_id=782493325]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = 12.0
+offset_right = -12.0
+offset_bottom = -12.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("8_icon_warehouse")
+expand_mode = 1
+stretch_mode = 5
