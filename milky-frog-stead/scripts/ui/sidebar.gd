@@ -85,9 +85,12 @@ func _open_menu(button: SidebarIconButton) -> void:
 	#    需要多行就用固定短文本，或用两个 Label 手动分行。
 	_animate_height(menu.get_combined_minimum_size().y + MENU_PADDING_Y)
 
-	# 抽屉已经展开（比如在两个菜单之间切换）时就只换内容，不要重复做滑入
-	if _menu_panel.position.x > 0.5:
-		_animate_slide(0.0)
+	# 无条件滑入：
+	# 从 A 菜单点到 B 菜单时，ButtonGroup 会先弹起 A、再按下 B，A 的 toggled(false) 已经
+	# 启动了"滑出"补间。这里如果再判断"已经展开了就不动"，那个滑出补间不会被取消，
+	# 会一路跑完并把面板藏起来（表现就是：切换菜单 = 直接把侧边栏关了）。
+	# _animate_slide 内部会 kill 掉旧补间，从当前位置接着往 0 走，所以重复调用没有副作用。
+	_animate_slide(0.0)
 
 	# 内容淡入：切菜单时不会"啪"地一下换掉
 	if _fade_tween != null and _fade_tween.is_valid():
@@ -116,7 +119,20 @@ func _get_or_create_menu(button: SidebarIconButton) -> Control:
 	menu.visible = false
 	_menu_holder.add_child(menu)
 	_menus[button] = menu
+	# 菜单内容在打开期间变高/变矮时（例如招聘抽到角色后多出一块立绘区），重新量高度
+	if not menu.minimum_size_changed.is_connected(_on_menu_min_size_changed):
+		menu.minimum_size_changed.connect(_on_menu_min_size_changed)
 	return menu
+
+
+## 当前显示的菜单最小尺寸变了 —— 让抽屉高度跟着它走
+func _on_menu_min_size_changed() -> void:
+	if _open_button == null:
+		return
+	var menu: Control = _menus.get(_open_button)
+	if menu == null or not menu.visible:
+		return
+	_animate_height(menu.get_combined_minimum_size().y + MENU_PADDING_Y)
 
 
 # ---------------- 开合动画 ----------------

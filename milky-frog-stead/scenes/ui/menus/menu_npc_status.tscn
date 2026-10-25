@@ -1,14 +1,14 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=2 format=3]
 
-[ext_resource type="Texture2D" path="res://assets/icons/npc_status.png" id="1_npc1"]
-[ext_resource type="Texture2D" path="res://assets/sprites/npcs/npc_fishing_128.png" id="2_npc2"]
+[ext_resource type="Script" path="res://scripts/ui/menu_npc_status.gd" id="1_script"]
 
 [node name="MenuNpcStatus" type="VBoxContainer"]
 layout_mode = 3
 anchors_preset = 0
-offset_right = 256.0
-offset_bottom = 220.0
-theme_override_constants/separation = 12
+offset_right = 260.0
+offset_bottom = 340.0
+theme_override_constants/separation = 10
+script = ExtResource("1_script")
 
 [node name="Title" type="Label" parent="."]
 layout_mode = 2
@@ -18,59 +18,27 @@ text = "员工状态"
 [node name="Line" type="HSeparator" parent="."]
 layout_mode = 2
 
-[node name="Worker1" type="HBoxContainer" parent="."]
+[node name="EmptyLabel" type="Label" parent="."]
+unique_name_in_owner = true
+visible = false
 layout_mode = 2
-theme_override_constants/separation = 10
-
-[node name="Portrait" type="TextureRect" parent="Worker1"]
-custom_minimum_size = Vector2(48, 48)
-layout_mode = 2
-size_flags_vertical = 0
-texture = ExtResource("1_npc1")
-expand_mode = 1
-stretch_mode = 5
-
-[node name="Info" type="VBoxContainer" parent="Worker1"]
-layout_mode = 2
-size_flags_vertical = 0
-theme_override_constants/separation = 2
-
-[node name="Name" type="Label" parent="Worker1/Info"]
-layout_mode = 2
-text = "青蛙一号"
-
-[node name="Status" type="Label" parent="Worker1/Info"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.25, 0.38, 0.2, 1)
+theme_override_colors/font_color = Color(0.25, 0.2, 0.12, 0.75)
 theme_override_font_sizes/font_size = 14
-text = "种地 · 体力 82%"
+text = "还没有员工，去「招聘」抽一个吧"
+text_overrun_behavior = 3
 
-[node name="Worker2" type="HBoxContainer" parent="."]
+[node name="Scroll" type="ScrollContainer" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 240)
 layout_mode = 2
+size_flags_vertical = 0
+horizontal_scroll_mode = 0
+
+[node name="List" type="VBoxContainer" parent="Scroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 10
-
-[node name="Portrait" type="TextureRect" parent="Worker2"]
-custom_minimum_size = Vector2(48, 48)
-layout_mode = 2
-size_flags_vertical = 0
-texture = ExtResource("2_npc2")
-expand_mode = 1
-stretch_mode = 5
-
-[node name="Info" type="VBoxContainer" parent="Worker2"]
-layout_mode = 2
-size_flags_vertical = 0
-theme_override_constants/separation = 2
-
-[node name="Name" type="Label" parent="Worker2/Info"]
-layout_mode = 2
-text = "青蛙二号"
-
-[node name="Status" type="Label" parent="Worker2/Info"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.72, 0.33, 0.2, 1)
-theme_override_font_sizes/font_size = 14
-text = "待命 · 体力 100%"
 
 [node name="Spacer" type="Control" parent="."]
 layout_mode = 2
@@ -80,5 +48,5 @@ size_flags_vertical = 3
 layout_mode = 2
 theme_override_colors/font_color = Color(0.25, 0.2, 0.12, 0.7)
 theme_override_font_sizes/font_size = 13
-text = "把员工拖到岗位即可安排工作"
+text = "工作状态默认「待定」，分配岗位后才会变"
 text_overrun_behavior = 3

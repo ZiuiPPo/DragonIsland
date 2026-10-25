@@ -8,11 +8,10 @@ const ROWS: int = 8
 
 const SLOT_SCENE: PackedScene = preload("res://scenes/ui/item_slot.tscn")
 
-const ICON_APPLE: Texture2D = preload("res://assets/icons/apple.png")
-const ICON_TOMATO: Texture2D = preload("res://assets/icons/tomato.png")
-const ICON_PUMPKIN: Texture2D = preload("res://assets/icons/pumpkin.png")
-const ICON_WHEAT: Texture2D = preload("res://assets/icons/wheat.png")
-const ICON_COIN: Texture2D = preload("res://assets/icons/coin.png")
+const ICON_APPLE: Texture2D = preload("res://assets/icons/items/apple.png")
+const ICON_TOMATO: Texture2D = preload("res://assets/icons/items/pumpkin.png")
+const ICON_PUMPKIN: Texture2D = preload("res://assets/icons/items/tomato.png")
+const ICON_WHEAT: Texture2D = preload("res://assets/icons/items/wheat.png")
 
 @onready var _grid: GridContainer = %Grid
 
@@ -60,13 +59,11 @@ func _fill_demo() -> void:
 		[ICON_TOMATO, 48],
 		[ICON_PUMPKIN, 12],
 		[ICON_WHEAT, 64],
-		[ICON_COIN, 64],
 		[ICON_APPLE, 32],
 		[ICON_WHEAT, 7],
 		[ICON_TOMATO, 64],
 		[ICON_PUMPKIN, 3],
 		[ICON_WHEAT, 21],
-		[ICON_COIN, 9],
 		[ICON_APPLE, 5],
 	]
 	for i in demo.size():

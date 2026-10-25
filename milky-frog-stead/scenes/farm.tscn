@@ -1,21 +1,19 @@
 [gd_scene format=3 uid="uid://2s17ayjig21q"]
 
-[ext_resource type="PackedScene" uid="uid://do4shqjy2e3ob" path="res://scenes/npc/npc.tscn" id="1_jjgid"]
 [ext_resource type="PackedScene" uid="uid://dc16olu8klj86" path="res://scenes/farm/level.tscn" id="1_k3ns2"]
-[ext_resource type="PackedScene" uid="uid://da2meef22k0ha" path="res://scenes/npc/npc_2.tscn" id="4_k3ns2"]
 [ext_resource type="Script" uid="uid://cywne0lnoahul" path="res://scripts/core/camera_controller.gd" id="5_camera"]
 [ext_resource type="PackedScene" uid="uid://bg7413xx822vf" path="res://scenes/ui/sidebar.tscn" id="6_sidebar"]
+[ext_resource type="PackedScene" uid="uid://ctcndkuciujlw" path="res://scenes/ui/coin_counter.tscn" id="7_coin"]
+[ext_resource type="Script" path="res://scripts/staff/staff_spawner.gd" id="8_staff"]
 
 [node name="Framland" type="Node2D" unique_id=1870938765]
 
 [node name="Level" parent="." unique_id=570364745 instance=ExtResource("1_k3ns2")]
 texture_filter = 1
 
-[node name="Npc1" parent="." unique_id=1864727420 instance=ExtResource("1_jjgid")]
-texture_filter = 1
-position = Vector2(65, 97)
-
-[node name="Npc2" parent="." unique_id=650547407 instance=ExtResource("4_k3ns2")]
+[node name="StaffSpawner" type="Node2D" parent="."]
+position = Vector2(0, 80)
+script = ExtResource("8_staff")
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=2073592116]
 position = Vector2(0, -18)
@@ -23,53 +21,14 @@ script = ExtResource("5_camera")
 limits_enabled = true
 limit_bounds = Rect2(-643, -412, 1344, 1280)
 
-[node name="Control" type="Control" parent="." unique_id=796914265]
-layout_mode = 3
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -20.0
-offset_top = -20.0
-offset_right = 20.0
-offset_bottom = 20.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="TextureRect" type="TextureRect" parent="Control" unique_id=567964705]
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
-
-[node name="VBoxContainer" type="VBoxContainer" parent="Control" unique_id=1080854198]
-custom_minimum_size = Vector2(500, 200)
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -250.0
-offset_top = -11.0
-offset_right = 250.0
-offset_bottom = 189.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="Begin" type="Button" parent="Control/VBoxContainer" unique_id=560532400]
-layout_mode = 2
-text = "开始游戏"
-
-[node name="Gameset" type="Button" parent="Control/VBoxContainer" unique_id=210463779]
-layout_mode = 2
-text = "游戏设置"
-
-[node name="Exit" type="Button" parent="Control/VBoxContainer" unique_id=180289090]
-layout_mode = 2
-text = "退出游戏"
-
-[node name="UiLayer" type="CanvasLayer" parent="."]
+[node name="UiLayer" type="CanvasLayer" parent="." unique_id=533838228]
 layer = 10
 
-[node name="Sidebar" parent="UiLayer" instance=ExtResource("6_sidebar")]
+[node name="Sidebar" parent="UiLayer" unique_id=588787064 instance=ExtResource("6_sidebar")]
+
+[node name="CoinCounter" parent="UiLayer" unique_id=772167797 instance=ExtResource("7_coin")]
+offset_left = 40.0
+offset_top = 40.0
+offset_right = 300.0
+offset_bottom = 118.0
+start_gold = 500

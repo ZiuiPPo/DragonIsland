@@ -1,0 +1,84 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/menu_recruit.gd" id="1_script"]
+
+[node name="MenuRecruit" type="VBoxContainer"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 260.0
+offset_bottom = 420.0
+theme_override_constants/separation = 10
+script = ExtResource("1_script")
+
+[node name="Title" type="Label" parent="."]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "招聘"
+
+[node name="Line" type="HSeparator" parent="."]
+layout_mode = 2
+
+[node name="PoolTitle" type="Label" parent="."]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.25, 0.2, 0.12, 0.75)
+theme_override_font_sizes/font_size = 13
+text = "可招聘的角色"
+
+[node name="PoolScroll" type="ScrollContainer" parent="."]
+custom_minimum_size = Vector2(0, 136)
+layout_mode = 2
+size_flags_vertical = 0
+horizontal_scroll_mode = 0
+
+[node name="PoolGrid" type="GridContainer" parent="PoolScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
+columns = 3
+
+[node name="ResultPanel" type="VBoxContainer" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ResultLine" type="HSeparator" parent="ResultPanel"]
+layout_mode = 2
+
+[node name="ResultPortrait" type="TextureRect" parent="ResultPanel"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 96)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="NameEdit" type="LineEdit" parent="ResultPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+placeholder_text = "给他起个名字"
+
+[node name="ConfirmButton" type="Button" parent="ResultPanel"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+text = "确定录用"
+
+[node name="Spacer" type="Control" parent="."]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Hint" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.25, 0.2, 0.12, 0.75)
+theme_override_font_sizes/font_size = 12
+text = "抽一次 100 金币"
+text_overrun_behavior = 3
+
+[node name="DrawButton" type="Button" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+text = "招聘一次 · 100 金币"

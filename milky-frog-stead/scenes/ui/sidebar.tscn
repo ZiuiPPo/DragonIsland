@@ -4,10 +4,12 @@
 [ext_resource type="Script" uid="uid://8krdjkjplqma" path="res://scripts/ui/sidebar_icon_button.gd" id="2_icon_script"]
 [ext_resource type="PackedScene" path="res://scenes/ui/menus/menu_npc_status.tscn" id="3_menu_npc"]
 [ext_resource type="PackedScene" path="res://scenes/ui/menus/menu_clock.tscn" id="4_menu_clock"]
+[ext_resource type="Texture2D" uid="uid://wco8i5nowkqq" path="res://assets/icons/recruit/npc1.png" id="4_qcjxn"]
 [ext_resource type="PackedScene" path="res://scenes/ui/menus/menu_warehouse.tscn" id="5_menu_warehouse"]
-[ext_resource type="Texture2D" uid="uid://k3l7s7o0q2i3" path="res://assets/icons/npc_status.png" id="6_icon_npc"]
-[ext_resource type="Texture2D" uid="uid://bymita4x2dx4l" path="res://assets/icons/clock.png" id="7_icon_clock"]
-[ext_resource type="Texture2D" uid="uid://dp1ucdta1xyxb" path="res://assets/icons/warehouse.png" id="8_icon_warehouse"]
+[ext_resource type="Texture2D" uid="uid://bymita4x2dx4l" path="res://assets/icons/hud/clock.png" id="7_icon_clock"]
+[ext_resource type="Texture2D" uid="uid://dp1ucdta1xyxb" path="res://assets/icons/hud/warehouse.png" id="8_icon_warehouse"]
+[ext_resource type="PackedScene" path="res://scenes/ui/menus/menu_recruit.tscn" id="6_menu_recruit"]
+[ext_resource type="Texture2D" path="res://assets/icons/hud/recruit.png" id="9_icon_recruit"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_menu_bg"]
 bg_color = Color(0.5846119, 0.5531883, 0.42044926, 1)
@@ -121,6 +123,37 @@ size_flags_horizontal = 8
 size_flags_vertical = 0
 theme_override_constants/separation = 30
 
+[node name="RecruitButton" type="Button" parent="Layout/IconColumn" unique_id=315704521]
+custom_minimum_size = Vector2(60, 60)
+layout_mode = 2
+tooltip_text = "招聘"
+focus_mode = 0
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_icon_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_icon_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_icon_hover")
+theme_override_styles/hover_pressed = SubResource("StyleBoxFlat_icon_pressed")
+toggle_mode = true
+button_group = SubResource("ButtonGroup_nav")
+script = ExtResource("2_icon_script")
+menu_scene = ExtResource("6_menu_recruit")
+
+[node name="Icon" type="TextureRect" parent="Layout/IconColumn/RecruitButton" unique_id=1072308153]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = 12.0
+offset_right = -12.0
+offset_bottom = -12.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("9_icon_recruit")
+expand_mode = 1
+stretch_mode = 5
+
 [node name="NpcStatusButton" type="Button" parent="Layout/IconColumn" unique_id=2064832432]
 custom_minimum_size = Vector2(60, 60)
 layout_mode = 2
@@ -141,14 +174,14 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 12.0
-offset_top = 12.0
-offset_right = -12.0
+offset_left = 13.0
+offset_top = 11.0
+offset_right = -8.0
 offset_bottom = -12.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-texture = ExtResource("6_icon_npc")
+texture = ExtResource("4_qcjxn")
 expand_mode = 1
 stretch_mode = 5
 
