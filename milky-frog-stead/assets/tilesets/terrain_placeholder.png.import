@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c2p5pje1t2yy7"
-path="res://.godot/imported/npc2_right.png-e18481ae1e7757aaf1e41113c51ba5f7.ctex"
+uid="uid://cf2fpwl0f3he1"
+path="res://.godot/imported/terrain_placeholder.png-3c5a603ba364117027890e09f16ca016.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/npcs/npc2_right.png"
-dest_files=["res://.godot/imported/npc2_right.png-e18481ae1e7757aaf1e41113c51ba5f7.ctex"]
+source_file="res://assets/tilesets/terrain_placeholder.png"
+dest_files=["res://.godot/imported/terrain_placeholder.png-3c5a603ba364117027890e09f16ca016.ctex"]
 
 [params]
 

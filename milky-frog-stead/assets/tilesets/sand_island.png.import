@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dhcaoa8m3yloh"
-path="res://.godot/imported/npc2_move_left.png-bde3dc6291a829ceed00843bab229fe5.ctex"
+uid="uid://i23o7vknq3l"
+path="res://.godot/imported/sand_island.png-65906be2e70ff9594965205026ba1ca3.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/sheets/npc2_move_left.png"
-dest_files=["res://.godot/imported/npc2_move_left.png-bde3dc6291a829ceed00843bab229fe5.ctex"]
+source_file="res://assets/tilesets/sand_island.png"
+dest_files=["res://.godot/imported/sand_island.png-65906be2e70ff9594965205026ba1ca3.ctex"]
 
 [params]
 

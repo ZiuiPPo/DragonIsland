@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://553i3lj3etq5"
-path="res://.godot/imported/npc_fishing_128.png-55bee89abb51808eacdade028bee35af.ctex"
+uid="uid://cj7p71eflqnyw"
+path="res://.godot/imported/foam.png-a19cb393c93e5402f28b9692ef7dfe24.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/npcs/npc_fishing_128.png"
-dest_files=["res://.godot/imported/npc_fishing_128.png-55bee89abb51808eacdade028bee35af.ctex"]
+source_file="res://assets/textures/water/foam.png"
+dest_files=["res://.godot/imported/foam.png-a19cb393c93e5402f28b9692ef7dfe24.ctex"]
 
 [params]
 

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dhqgmjwtthwyj"
-path="res://.godot/imported/npc1_right.png-153b9560bf58b99c8368548c7d8f9596.ctex"
+uid="uid://bcvacww3e7j24"
+path="res://.godot/imported/caustics.png-9ce7e41ea41852845001363115392b2e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/npcs/npc1_right.png"
-dest_files=["res://.godot/imported/npc1_right.png-153b9560bf58b99c8368548c7d8f9596.ctex"]
+source_file="res://assets/textures/water/caustics.png"
+dest_files=["res://.godot/imported/caustics.png-9ce7e41ea41852845001363115392b2e.ctex"]
 
 [params]
 

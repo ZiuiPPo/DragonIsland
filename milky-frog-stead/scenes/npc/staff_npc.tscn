@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://qstjdueq7bxo"]
 
 [ext_resource type="Script" uid="uid://cdi1rgots8nlh" path="res://scripts/staff/staff_npc.gd" id="1_staff"]
-[ext_resource type="Script" uid="uid://ch8g5a8kxj2d5" path="res://scripts/npc_locomotion.gd" id="2_locomotion"]
+[ext_resource type="Script" uid="uid://ch8g5a8kxj2d5" path="res://scripts/staff/npc_locomotion.gd" id="2_locomotion"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_staff"]
 radius = 17.0

@@ -1,16 +1,16 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3 uid="uid://b43fdqchyuleb"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_body"]
 size = Vector2(80, 40)
 
-[node name="奶龙" type="CharacterBody2D"]
+[node name="奶龙" type="CharacterBody2D" unique_id=788032896]
 
-[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=1190340674]
 position = Vector2(0, -107)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1436637419]
 position = Vector2(0, -20)
 shape = SubResource("RectangleShape2D_body")
 
-[node name="Camera2D" type="Camera2D" parent="."]
+[node name="Camera2D" type="Camera2D" parent="." unique_id=263084652]
 position = Vector2(0, -98)
