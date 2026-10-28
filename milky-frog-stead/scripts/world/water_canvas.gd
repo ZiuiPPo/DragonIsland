@@ -17,7 +17,7 @@ func _ready() -> void:
 	# 尺寸固定 1x1，用 scale 拉伸：QuadMesh 每次改 size 都会重建网格，别每帧改
 	_quad.size = Vector2.ONE
 	mesh = _quad
-	z_index = -1
+	# 图层顺序交给场景决定：这里写死 z_index 会盖住草地
 	# 贴图采样方式由 shader 的 uniform hint 决定，这里不影响
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	if material is ShaderMaterial:

@@ -96,6 +96,9 @@ var _facing_right := false
 
 # ---------------------------------------------------------------- 生命周期
 func _ready() -> void:
+	# 告诉草地系统：这货会踩开草丛（GrassField2D 的 pusher_group，最多取 4 个）
+	add_to_group("grass_pusher")
+
 	# 俯视角：不受重力、没有"地面"概念。不设的话 move_and_slide 会按
 	# GROUNDED 那套逻辑处理碰撞，撞墙时的滑动方向会不对
 	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING

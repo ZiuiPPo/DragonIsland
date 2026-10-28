@@ -9,6 +9,14 @@ func _ready() -> void:
 
 
 func _go(path: String) -> void:
+	# --cam X Y：截图前把镜头挪过去（看岸边用）
+	var args := OS.get_cmdline_user_args()
+	var ci := args.find("--cam")
+	if ci >= 0 and args.size() >= ci + 3:
+		var cam := get_viewport().get_camera_2d()
+		if cam:
+			cam.limits_enabled = false
+			cam.global_position = Vector2(float(args[ci + 1]), float(args[ci + 2]))
 	await get_tree().create_timer(2.0).timeout
 	await RenderingServer.frame_post_draw
 	var img := get_viewport().get_texture().get_image()

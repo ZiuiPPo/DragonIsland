@@ -26,6 +26,8 @@ func _ready() -> void:
 
 ## 名册和场景对齐：缺的人生出来，多出来的人收走，改名的人更新头顶文字
 func _sync() -> void:
+	print("[spawner] _sync 名册 %d 人，已生成 %d 个，父节点 visible=%s" % [
+		StaffRegistry.members.size(), _spawned.size(), visible])
 	var alive := {}
 	for member in StaffRegistry.members:
 		alive[member.id] = true
@@ -56,3 +58,6 @@ func _spawn(member: StaffMember) -> void:
 	npc.call("configure", member, Vector2(cos(angle), sin(angle)) * radius)
 	add_child(npc)
 	_spawned[member.id] = npc
+	print("[spawner] 生成 %s id=%d 位置=%s 可见=%s" % [
+		member.display_name, member.id,
+		(npc as Node2D).global_position, (npc as CanvasItem).visible])

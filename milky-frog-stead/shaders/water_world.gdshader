@@ -66,6 +66,7 @@ uniform float foam_scale = 120.0;        // 复用焦散贴图，缩小来当浪
 uniform float foam_pixel = 4.0;          // 浪花的像素网格（世界像素）：调大=块更粗
 uniform float foam_cell = 64.0;          // 每多少世界像素换一个浪花变体
 uniform float foam_speed = 0.06;         // 浪花纹理漂移
+uniform float splash_scale = 55.0;       // 崖壁溅沫的纹理尺度（越小越碎）
 uniform float foam_opacity = 0.9;
 uniform float anim_speed = 1.0;          // 0 = 冻住水面（截图 / 对比测试用）
 uniform float rim_width = 0.35;          // 岸边浅色环的宽度（格）
@@ -77,9 +78,19 @@ uniform float edge_wobble = 0.85;        // 起伏幅度，单位「格」
 uniform float edge_freq = 0.020;         // 起伏的空间频率
 uniform float edge_speed = 0.22;         // 起伏的流动速度
 uniform float edge_breathe = 0.18;       // 整条海岸线的整体呼吸幅度（格）
+uniform float edge_inland_clamp = 1.0;   // 1 = 水线只往海里退，绝不上岸越过遮罩红线
 uniform float edge_pixel = 2.0;          // 海岸线的像素网格：水线按这个格子量化成硬边
+uniform float edge_fps = 8.0;            // 海岸线动画帧率（序列帧感，别设太高）
+uniform float tide_amp = 0.9;            // 潮汐幅度（格）：水线上下各走多少
+uniform float tide_speed = 0.7;          // 潮汐速度（弧度/秒）
+uniform float wet_strength = 0.8;        // 湿沙带强度
+uniform float debug_cliff = 0.0;        // 1 = 把判定成崖壁的岸段染红（调参用）
+uniform vec4  col_wet : source_color = vec4(0.60, 0.46, 0.30, 1.0);   // 湿沙色（比干沙暗）
 uniform float shore_offset = 0.0;        // 把水线往岸上推几格（用来盖住瓦片海岸的台阶）
 uniform vec4  col_foam : source_color = vec4(1.0, 1.0, 1.0, 1.0);
+// 草↔沙交界那条动态抖动带（见 5.5）。默认 0 = 关：
+// 它挂在会被潮汐推动的水线上，瓦片地面下会变成沿草线爬动的碎点。
+uniform float tile_edge_dither : hint_range(0.0, 1.0) = 0.0;
 
 varying vec2 world_pos;
 
@@ -124,21 +135,41 @@ void fragment() {
 	vec2 uv = (wp - rect_origin) / rect_size;
 	vec4 mask = texture(mask_tex, uv);
 	float depth = mask.r;                                  // 0 = 水线, 1 = 深水
+	// 岸型：烘焙在 B 通道里，0 = 沙滩，1 = 崖壁（由岛图颜色判断出来的）
+	float cliff = clamp(mask.b, 0.0, 1.0);
 
 	// 先用像素化网格把世界坐标量化，再拿去做噪声 / 采样焦散。
 	// 不量化的话，流动噪声把 UV 一拉，贴图里的像素会被拉伸得很明显。
 	vec2 pwp = floor(wp / pixel_size) * pixel_size;
 	float T = TIME * anim_speed;
 
-	// ── 0.5 海岸线：像素化 + 硬边 ─────────────────────────────────
-	// 在 edge_pixel 的网格上取距离场，再叠低频噪声让水线起伏。
-	// 最后 step 成硬边：像素风的海岸线不能有抗锯齿，否则边缘是一圈糊的过渡。
+	// ── 0.5 海岸线：像素化 + 序列帧 + 潮汐 ────────────────────────
 	vec2 ep = floor(wp / edge_pixel) * edge_pixel;
 	vec2 euv = (ep - rect_origin) / rect_size;
 	float d_e = (texture(mask_tex, euv).g - 0.5) * 2.0 * sdf_range;
-	vec2 ewob_uv = ep * edge_freq + vec2(T * edge_speed, T * edge_speed * 0.6);
+
+	// 序列帧：时间量化到 edge_fps，海岸线是一帧一帧跳的，不是连续滑的
+	float Tq = floor(T * edge_fps) / max(edge_fps, 1.0);
+
+	// 每段海岸线自己的相位（潮汐和浪花共用，所以各处不同步）
+	float phase = fbm(ep * 0.0032 + 13.0) * 11.0;   // 低频、大范围：整条海岸线分几段各走各的
+
+	// 低频噪声：把水线揉出起伏
+	vec2 ewob_uv = ep * edge_freq + vec2(Tq * edge_speed, Tq * edge_speed * 0.6);
 	float wob = (fbm(ewob_uv) + 0.55 * fbm(ewob_uv * 2.3 + 11.0)) * edge_wobble;
-	float d = d_e + wob + shore_offset + sin(T * 0.45) * edge_breathe;
+
+	// 潮汐：本段海岸线的水位在 ±tide_amp 格之间涨落
+	float tide = sin(Tq * tide_speed + phase) * tide_amp;
+	// 退潮量：离本段最高水位差多少格。涨到顶点时 = 0，落到最低时 = 2*tide_amp
+	float retreat = clamp(tide_amp - tide, 0.0, tide_amp * 2.0);
+
+	float off = wob + shore_offset + tide + sin(Tq * 0.45) * edge_breathe;
+	// 岸线由遮罩决定：
+	//   沙滩 — 只许往海里退，不上岸
+	//   崖壁 — 完全不动，白描边固定死（浪拍上去，但水线不挪）
+	off = mix(off, min(off, 0.0), edge_inland_clamp);
+	off = mix(off, 0.0, cliff);
+	float d = d_e + off;
 	// 近岸不做硬切：用 alpha 渐变让水色淡进沙子里（这就是"透明选色"）。
 	// d 已经在 edge_pixel 的网格上量化过，所以这条渐变是块状的，不是抗锯齿的糊边。
 	float water = smoothstep(-0.5, 0.5, d);
@@ -163,7 +194,9 @@ void fragment() {
 	// 水深渐变：浅水发青，深水压暗。
 	// 用「到水线的距离」当主控（浅水带宽度就是直观的几格），
 	// 再和贴图里的真实水深取 max，避免地形陡的地方浅水带被吃掉。
-	float shallow_t = smoothstep(0.0, shallow_width, -shore);
+	// 崖壁下面没有沙滩，所以不吃浅水带：水直接是深的、能压出暗边，
+	// 白色溅沫这才有对比（不然全是浅色的白，什么都看不出来）
+	float shallow_t = smoothstep(0.0, shallow_width, -shore) * (1.0 - cliff * 0.9);
 	float depth_t = clamp(max(pow(clamp(depth, 0.0, 1.0), 1.4), shallow_t), 0.0, 1.0);
 	vec3 water_col = mix(col_water_shallow.rgb, col_water_deep.rgb, depth_t);
 
@@ -236,14 +269,41 @@ void fragment() {
 			* (1.0 - smoothstep(0.0, 2.8, d));
 	// 一圈圈往岸上推：整条带的强度跟着时间脉动。
 	// 相位按位置错开——否则整圈海岸线会同时冒出来、同时消失，假得离谱。
-	float phase = fbm(ep * 0.006 + 13.0) * 8.0;
-	float wave = 0.5 + 0.5 * sin(T * 0.9 - d * 0.85 + phase);
+	// 一圈圈往岸上推：相位在 0.5 步就按位置错开过了，各段自己走
+	float wave = 0.5 + 0.5 * sin(Tq * 0.9 - d * 0.85 + phase);
 	// 硬边：像素风的浪花是实心的白块，不是半透明的一层雾
 	float foam = step(0.16, foam_zone * wave) * foam_pat;
+
+	// ③ 崖壁：浪是「撞」上去的，和沙滩那套完全不一样
+	//    · 贴得更近、带子更窄（撞在岩壁上，不会铺开）
+	//    · 节奏更快、更爆（burst 用高频正弦）
+	//    · 纹理纵向拉长（溅起来的水柱/白沫）
+	//    mask.b 是烘焙出来的岸型：0 = 沙滩，1 = 崖壁
+	vec2 splash_uv = vec2(fwp.x / splash_scale, fwp.y / (splash_scale * 0.42));
+	splash_uv += vec2(floor(vh * 5.0), -Tq * 0.55);
+	float splash = texture(foam_mask_tex, splash_uv).a;
+	float burst = 0.5 + 0.5 * sin(Tq * 3.2 + phase * 2.0);
+	// 撞在水线上的白沫
+	float cliff_band = 1.0 - smoothstep(0.0, 1.7, abs(d - 0.25));
+	float foam_cliff = step(0.28, cliff_band * burst) * splash;
+	// 溅到岩壁上的一片（岸上 1.6 格内），这一层必须单独给 alpha，不然压在陆地上看不见
+	float cliff_spray = (1.0 - smoothstep(0.0, 1.6, -d)) * step(0.0, -d)
+			* step(0.45, burst) * splash * cliff;
+	foam = mix(foam, foam_cliff, cliff);
 
 	// ③ 白色描边：贴着水线的白线，不是"岸边浅色环"。
 	//    和浅↔深的过渡是两件事：过渡在水体内部（靠 water_col 的 mix），描边只在水线上。
 	float rim = (1.0 - smoothstep(0.0, max(rim_width, 0.001), d)) * step(0.0, d);
+
+	// ── 5.4 湿沙带 ────────────────────────────────────────────────
+	// 退潮露出来的一圈沙：长度 = 退潮量 retreat（格），涨潮时归零。
+	// 从当前水线往外铺、离水越远越淡——就是"刚退下去还湿着"的感觉。
+	// 湿沙贴着「固定岸线」而不是当前水线：水退下去之后，紧挨着的这圈沙是湿的
+	float wet = (1.0 - smoothstep(0.0, max(retreat, 0.001), -d_e))
+			* step(0.0, shore)
+			* smoothstep(0.0, 0.25, retreat)          // 退潮量太小就不显示
+			* wet_strength
+			* (1.0 - cliff);                          // 岩壁不会留下湿沙
 
 	// ── 5.5 草地↔沙滩的抖动过渡 ──────────────────────────────────
 	// 地面是瓦片时，草地和沙滩的交界是 16px 的硬台阶。在分界线上撒一层
@@ -251,21 +311,31 @@ void fragment() {
 	// ground_mix = 1（整块地面都由 shader 画）时不需要。
 	// 注意要先把 shore_offset 加回来：shore 被水线偏移整体压过，
 	// 不补回去抖动带就会落到沙滩内侧、几乎看不见。
+	//
+	// ★ 默认关闭（tile_edge_dither = 0）。这条带的中心挂在 shore 上，而 shore 每帧都
+	//   被潮汐 / 起伏 / 呼吸（edge_fps=8）推动，于是抖动带整体在草线附近来回爬，
+	//   2px 的沙粒跟着反复重排，看起来就是"像素在抖"。地面已经有瓦片和自己的色块层了，
+	//   这里再叠一层动态 dither 只会脏。想复现原效果把这里调回 1。
 	float edge_shore = shore + shore_offset;
-	float fringe = 1.0 - smoothstep(0.0, 1.3, abs(edge_shore - beach_width));
-	float dither = step(hash21(floor(wp / pixel_size) * pixel_size), fringe * 0.85);
+	float band = (1.0 - smoothstep(0.0, 1.3, abs(edge_shore - beach_width))) * tile_edge_dither;
+	// band = 0 时必须**直接给 0**：step(hash, 0) 在 hash 恰好为 0 的那些格子上会返回 1，
+	// 于是草地上会零星冒出 4x4 的沙色方块（就是"少一个像素点"的来源）。
+	float dither = band > 0.001 ? step(hash21(floor(wp / pixel_size) * pixel_size), band * 0.85) : 0.0;
 	dither *= (1.0 - water) * (1.0 - ground_mix);
 
 	// ── 6. 合成 ──────────────────────────────────────────────────
 	vec3 col = base;
 	col += col_caustics.rgb * caus * caustics_strength * water;
 	col += col_highlight.rgb * sparkle * crest * hl_strength * water;
-	col = mix(col, col_foam.rgb, clamp(foam * foam_opacity, 0.0, 1.0));
+	col = mix(col, col_foam.rgb, clamp(foam * foam_opacity * water + cliff_spray, 0.0, 1.0));
 	col = mix(col, col_rim.rgb, rim * rim_strength);
+	col = mix(col, col_wet.rgb, clamp(wet, 0.0, 1.0));
+	col = mix(col, vec3(1.0, 0.0, 0.0), cliff * debug_cliff * 0.7);
 	col = mix(col, col_sand_dry.rgb, dither);
 
 	// ground_mix = 0 时只输出水色，alpha 交给水体蒙版，叠在手绘瓦片上
 	float alpha = mix(water, 1.0, ground_mix);
-	// 描边要实心：水线附近 alpha 只有 0.5，不抬起来白线会虚
-	COLOR = vec4(col, max(alpha, max(dither, rim * rim_strength)));
+	// 描边、湿沙、崖壁溅沫都要实心：水线附近 alpha 只有 0.5，不抬起来会是虚的
+	COLOR = vec4(col, max(alpha, max(dither, max(rim * rim_strength,
+			max(wet, cliff_spray) * (1.0 - ground_mix)))));
 }
