@@ -286,16 +286,18 @@ func rebake(c: Vector2i) -> void:
 	baked.emit(Vector2(rect.position) * tile_size, Vector2(rect.size) * tile_size)
 
 
-## 倒角距离变换（chamfer 3-4）：两趟扫描，得到每个格到最近 `seed` 格的距离（单位：格）。
+## 倒角距离变换（chamfer 3-4）：两趟扫描，得到每个格到最近 `source_value` 格的距离（单位：格）。
 ## 距离场是浪花和沙滩宽度的唯一依据，所以这里不能糊弄。
-func _chamfer(water: PackedByteArray, w: int, h: int, seed: int) -> PackedFloat32Array:
+## `source_value` = 「要被量距离的那一类格」的字节值：1 = 水格，0 = 陆格。
+## 别把参数叫 seed —— 那是 GDScript 的内置函数名，会报 shadowed_global_identifier。
+func _chamfer(water: PackedByteArray, w: int, h: int, source_value: int) -> PackedFloat32Array:
 	const INF := 1.0e9
 	const DIAG := 1.41421356
 	var n := w * h
 	var d := PackedFloat32Array()
 	d.resize(n)
 	for i in n:
-		d[i] = 0.0 if water[i] == seed else INF
+		d[i] = 0.0 if water[i] == source_value else INF
 
 	for y in h:
 		var row := y * w

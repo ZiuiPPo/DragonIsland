@@ -9,8 +9,8 @@ const ROWS: int = 8
 const SLOT_SCENE: PackedScene = preload("res://scenes/ui/item_slot.tscn")
 
 const ICON_APPLE: Texture2D = preload("res://assets/icons/items/apple.png")
-const ICON_TOMATO: Texture2D = preload("res://assets/icons/items/pumpkin.png")
-const ICON_PUMPKIN: Texture2D = preload("res://assets/icons/items/tomato.png")
+const ICON_TOMATO: Texture2D = preload("res://assets/icons/items/tomato.png")
+const ICON_PUMPKIN: Texture2D = preload("res://assets/icons/items/pumpkin.png")
 const ICON_WHEAT: Texture2D = preload("res://assets/icons/items/wheat.png")
 
 @onready var _grid: GridContainer = %Grid
