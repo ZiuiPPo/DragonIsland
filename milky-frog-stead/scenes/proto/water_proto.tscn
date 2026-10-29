@@ -1,0 +1,72 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Shader" path="res://shaders/water_world.gdshader" id="1_shader"]
+[ext_resource type="Script" path="res://scripts/world/water_canvas.gd" id="2_canvas"]
+[ext_resource type="Script" path="res://scripts/world/terrain_field.gd" id="3_field"]
+[ext_resource type="Script" path="res://scripts/world/proto_player.gd" id="4_player"]
+[ext_resource type="Script" path="res://scripts/world/proto_hud.gd" id="5_hud"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_water"]
+shader = ExtResource("1_shader")
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_body"]
+radius = 7.0
+
+[node name="WaterProto" type="Node2D"]
+
+[node name="Ground" type="TileMapLayer" parent="."]
+z_index = -2
+visible = false
+
+[node name="WaterCanvas" type="MeshInstance2D" parent="."]
+material = SubResource("ShaderMaterial_water")
+z_index = -1
+script = ExtResource("2_canvas")
+
+[node name="TerrainField" type="Node2D" parent="."]
+script = ExtResource("3_field")
+player_path = NodePath("../Player")
+canvas_path = NodePath("../WaterCanvas")
+tile_layer_path = NodePath("../Ground")
+
+[node name="Player" type="CharacterBody2D" parent="."]
+z_index = 2
+script = ExtResource("4_player")
+
+[node name="Body" type="Polygon2D" parent="Player"]
+color = Color(0.478431, 0.745098, 0.333333, 1)
+polygon = PackedVector2Array(9, 0, 6.36, 6.36, 0, 9, -6.36, 6.36, -9, 0, -6.36, -6.36, 0, -9, 6.36, -6.36)
+
+[node name="Outline" type="Line2D" parent="Player"]
+width = 2.0
+default_color = Color(0.211765, 0.32549, 0.145098, 1)
+closed = true
+points = PackedVector2Array(9, 0, 6.36, 6.36, 0, 9, -6.36, 6.36, -9, 0, -6.36, -6.36, 0, -9, 6.36, -6.36)
+
+[node name="EyeL" type="Polygon2D" parent="Player"]
+color = Color(0.0784314, 0.117647, 0.054902, 1)
+polygon = PackedVector2Array(-4.5, -5.5, -2.0, -5.5, -2.0, -3.0, -4.5, -3.0)
+
+[node name="EyeR" type="Polygon2D" parent="Player"]
+color = Color(0.0784314, 0.117647, 0.054902, 1)
+polygon = PackedVector2Array(2.0, -5.5, 4.5, -5.5, 4.5, -3.0, 2.0, -3.0)
+
+[node name="Collision" type="CollisionShape2D" parent="Player"]
+shape = SubResource("CircleShape2D_body")
+
+[node name="Camera2D" type="Camera2D" parent="Player"]
+zoom = Vector2(1, 1)
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="Info" type="Label" parent="HUD"]
+offset_left = 16.0
+offset_top = 12.0
+offset_right = 960.0
+offset_bottom = 120.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0.0588235, 0.101961, 0.0470588, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 18
+script = ExtResource("5_hud")
+field_path = NodePath("../../TerrainField")

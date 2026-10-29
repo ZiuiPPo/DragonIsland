@@ -1,0 +1,71 @@
+[gd_scene format=3 uid="uid://ctcndkuciujlw"]
+
+[ext_resource type="Script" uid="uid://nat0kbthod30" path="res://scripts/ui/coin_counter.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://bjih7m7adouux" path="res://assets/icons/hud/coin.png" id="2_coin"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_coin_bg"]
+bg_color = Color(0.55340385, 0.4780498, 0.22553846, 0.92156863)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.95840436, 0.8902476, 0.77329135, 1)
+corner_radius_top_left = 18
+corner_radius_top_right = 18
+corner_radius_bottom_right = 18
+corner_radius_bottom_left = 18
+shadow_color = Color(0, 0, 0, 0.28)
+shadow_size = 6
+shadow_offset = Vector2(0, 3)
+
+[node name="CoinCounter" type="Control" groups=["coin_counter"] unique_id=377229206]
+custom_minimum_size = Vector2(260, 78)
+layout_mode = 3
+anchors_preset = 0
+offset_right = 260.0
+offset_bottom = 78.0
+mouse_filter = 2
+script = ExtResource("1_script")
+
+[node name="Panel" type="Panel" parent="." unique_id=1208639436]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_coin_bg")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="." unique_id=1791570007]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 10.0
+offset_right = -20.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="Icon" type="TextureRect" parent="HBoxContainer" unique_id=2131319031]
+custom_minimum_size = Vector2(56, 56)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+texture = ExtResource("2_coin")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="NumLable" type="Label" parent="HBoxContainer" unique_id=1904489509]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.95, 0.8, 1)
+theme_override_colors/font_outline_color = Color(0.08, 0.06, 0.03, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 32
+text = "0"
+vertical_alignment = 1

@@ -1,0 +1,109 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/menu_clock.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://bymita4x2dx4l" path="res://assets/icons/hud/clock.png" id="1_clock"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bar_bg"]
+bg_color = Color(0.36, 0.32000002, 0.24, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bar_fill"]
+bg_color = Color(0.86, 0.71, 0.35, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[node name="MenuClock" type="VBoxContainer"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 256.0
+offset_bottom = 220.0
+theme_override_constants/separation = 12
+script = ExtResource("1_script")
+
+[node name="Title" type="Label" parent="."]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "时间"
+
+[node name="Line" type="HSeparator" parent="."]
+layout_mode = 2
+
+[node name="DayRow" type="HBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Icon" type="TextureRect" parent="DayRow"]
+custom_minimum_size = Vector2(44, 44)
+layout_mode = 2
+size_flags_vertical = 0
+texture = ExtResource("1_clock")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Text" type="VBoxContainer" parent="DayRow"]
+layout_mode = 2
+size_flags_vertical = 0
+theme_override_constants/separation = 2
+
+[node name="Day" type="Label" parent="DayRow/Text"]
+layout_mode = 2
+text = "第 1 天"
+
+[node name="Phase" type="Label" parent="DayRow/Text"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.25, 0.38, 0.2, 1)
+theme_override_font_sizes/font_size = 14
+text = "早晨 · 配置时间"
+
+[node name="Spacer" type="Control" parent="."]
+custom_minimum_size = Vector2(0, 8)
+layout_mode = 2
+
+[node name="ProgressLabel" type="Label" parent="."]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "营业进度"
+
+[node name="BusinessBar" type="ProgressBar" parent="."]
+custom_minimum_size = Vector2(0, 16)
+layout_mode = 2
+theme_override_styles/background = SubResource("StyleBoxFlat_bar_bg")
+theme_override_styles/fill = SubResource("StyleBoxFlat_bar_fill")
+value = 100.0
+show_percentage = false
+
+[node name="Grow" type="Control" parent="."]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Hint" type="Label" parent="."]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.25, 0.2, 0.12, 0.7)
+theme_override_font_sizes/font_size = 13
+text = "营业 90 秒后自动打烊结算"
+text_overrun_behavior = 3
+
+[node name="SaveHint" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.32, 0.46, 0.25, 1)
+theme_override_font_sizes/font_size = 12
+text = "进度每 30 秒自动保存"
+text_overrun_behavior = 3
+
+[node name="SaveButton" type="Button" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+text = "手动保存"
+
+[node name="MainMenuButton" type="Button" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+text = "保存并返回主菜单"

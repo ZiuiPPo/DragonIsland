@@ -1,7 +1,84 @@
-[gd_scene format=3 uid="uid://dagoe4tn5g2y1"]
+[gd_scene load_steps=8 format=3 uid="uid://dagoe4tn5g2y1"]
 
 [ext_resource type="Script" uid="uid://bqbql5pfbu48v" path="res://scenes/ui/main_menu.gd" id="1_fe2o3"]
 [ext_resource type="Texture2D" uid="uid://btcngsxbrkq0k" path="res://assets/start/startback.png" id="1_sl1te"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_normal"]
+content_margin_left = 18.0
+content_margin_top = 10.0
+content_margin_right = 18.0
+content_margin_bottom = 10.0
+bg_color = Color(0.56, 0.46, 0.28, 0.94)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.86, 0.73, 0.46, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+shadow_color = Color(0, 0, 0, 0.28)
+shadow_size = 4
+shadow_offset = Vector2(0, 2)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_hover"]
+content_margin_left = 18.0
+content_margin_top = 10.0
+content_margin_right = 18.0
+content_margin_bottom = 10.0
+bg_color = Color(0.68, 0.56, 0.34, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.98, 0.85, 0.54, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+shadow_color = Color(0, 0, 0, 0.3)
+shadow_size = 6
+shadow_offset = Vector2(0, 3)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_pressed"]
+content_margin_left = 18.0
+content_margin_top = 10.0
+content_margin_right = 18.0
+content_margin_bottom = 10.0
+bg_color = Color(0.44, 0.35, 0.21, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.78, 0.64, 0.38, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_focus"]
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.91, 0.63, 0.75)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_save_state"]
+content_margin_left = 10.0
+content_margin_top = 4.0
+content_margin_right = 10.0
+content_margin_bottom = 4.0
+bg_color = Color(0.2, 0.16, 0.1, 0.45)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
 
 [node name="MainMenu" type="Control" unique_id=1814964393]
 layout_mode = 3
@@ -23,7 +100,7 @@ texture = ExtResource("1_sl1te")
 expand_mode = 1
 
 [node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=1912356257]
-custom_minimum_size = Vector2(450, 200)
+custom_minimum_size = Vector2(450, 300)
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -31,36 +108,93 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -225.0
-offset_top = -100.0
+offset_top = -150.0
 offset_right = 225.0
-offset_bottom = 100.0
+offset_bottom = 150.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_constants/separation = 12
 
-[node name="GameBegin" type="Button" parent="VBoxContainer" unique_id=947507775]
+[node name="NewGame" type="Button" parent="VBoxContainer"]
+custom_minimum_size = Vector2(0, 54)
 layout_mode = 2
-text = "开始游戏"
+theme_override_colors/font_color = Color(1, 0.97, 0.88, 1)
+theme_override_colors/font_outline_color = Color(0.16, 0.11, 0.05, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 22
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_pressed")
+theme_override_styles/focus = SubResource("StyleBoxFlat_btn_focus")
+text = "新游戏"
 
-[node name="GameSet" type="Button" parent="VBoxContainer" unique_id=2094355936]
+[node name="Save" type="Button" parent="VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 54)
 layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.97, 0.88, 1)
+theme_override_colors/font_outline_color = Color(0.16, 0.11, 0.05, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 22
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_pressed")
+theme_override_styles/focus = SubResource("StyleBoxFlat_btn_focus")
+text = "存档"
+
+[node name="GameSet" type="Button" parent="VBoxContainer"]
+custom_minimum_size = Vector2(0, 54)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.97, 0.88, 1)
+theme_override_colors/font_outline_color = Color(0.16, 0.11, 0.05, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 22
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_pressed")
+theme_override_styles/focus = SubResource("StyleBoxFlat_btn_focus")
 text = "游戏设置"
 
-[node name="GameExit" type="Button" parent="VBoxContainer" unique_id=90172135]
+[node name="GameExit" type="Button" parent="VBoxContainer"]
+custom_minimum_size = Vector2(0, 54)
 layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.97, 0.88, 1)
+theme_override_colors/font_outline_color = Color(0.16, 0.11, 0.05, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 22
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_pressed")
+theme_override_styles/focus = SubResource("StyleBoxFlat_btn_focus")
 text = "退出游戏"
+
+[node name="SaveState" type="Label" parent="VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.94, 0.8, 0.9)
+theme_override_font_sizes/font_size = 14
+theme_override_styles/normal = SubResource("StyleBoxFlat_save_state")
+text = "暂无存档"
+horizontal_alignment = 1
 
 [node name="Label" type="Label" parent="." unique_id=1662729784]
 layout_mode = 1
 anchors_preset = 5
 anchor_left = 0.5
 anchor_right = 0.5
-offset_left = -20.0
-offset_top = 99.0
-offset_right = 20.0
-offset_bottom = 122.0
+offset_left = -60.0
+offset_top = 72.0
+offset_right = 60.0
+offset_bottom = 108.0
 grow_horizontal = 2
+theme_override_colors/font_color = Color(1, 0.95, 0.82, 1)
+theme_override_colors/font_outline_color = Color(0.14, 0.1, 0.04, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 30
 text = "奶龙种地"
+horizontal_alignment = 1
 
-[connection signal="pressed" from="VBoxContainer/GameBegin" to="." method="_on_game_begin_pressed"]
-[connection signal="pressed" from="VBoxContainer/GameSet" to="." method="_on_game_set_pressed"]
-[connection signal="pressed" from="VBoxContainer/GameExit" to="." method="_on_game_exit_pressed"]
+[connection signal="pressed" from="VBoxContainer/NewGame" to="." method="_on_new_game_pressed"]
+[connection signal="pressed" from="VBoxContainer/Save" to="." method="_on_save_pressed"]
+[connection signal="pressed" from="VBoxContainer/GameSet" to="." method="_on_settings_pressed"]
+[connection signal="pressed" from="VBoxContainer/GameExit" to="." method="_on_exit_pressed"]

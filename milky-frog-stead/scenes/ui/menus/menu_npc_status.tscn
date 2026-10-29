@@ -1,0 +1,52 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/menu_npc_status.gd" id="1_script"]
+
+[node name="MenuNpcStatus" type="VBoxContainer"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 260.0
+offset_bottom = 340.0
+theme_override_constants/separation = 10
+script = ExtResource("1_script")
+
+[node name="Title" type="Label" parent="."]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "员工状态"
+
+[node name="Line" type="HSeparator" parent="."]
+layout_mode = 2
+
+[node name="EmptyLabel" type="Label" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.25, 0.2, 0.12, 0.75)
+theme_override_font_sizes/font_size = 14
+text = "还没有员工，去「招聘」抽一个吧"
+text_overrun_behavior = 3
+
+[node name="Scroll" type="ScrollContainer" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 240)
+layout_mode = 2
+size_flags_vertical = 0
+horizontal_scroll_mode = 0
+
+[node name="List" type="VBoxContainer" parent="Scroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="Spacer" type="Control" parent="."]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Hint" type="Label" parent="."]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.25, 0.2, 0.12, 0.7)
+theme_override_font_sizes/font_size = 13
+text = "工作状态默认「待定」，分配岗位后才会变"
+text_overrun_behavior = 3

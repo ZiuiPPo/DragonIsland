@@ -1,8 +1,6 @@
 [gd_scene format=3 uid="uid://cefo7lajp4xsc"]
 
 [ext_resource type="Texture2D" uid="uid://cwryh2lt8fal7" path="res://assets/sprites/backgrounds/scene_base_farm.png" id="1_pyl7j"]
-[ext_resource type="PackedScene" uid="uid://do4shqjy2e3ob" path="res://scenes/npc/npc.tscn" id="2_b3w7a"]
-[ext_resource type="PackedScene" uid="uid://da2meef22k0ha" path="res://scenes/npc/npc_2.tscn" id="3_4rr2b"]
 [ext_resource type="Script" uid="uid://cywne0lnoahul" path="res://scripts/core/camera_controller.gd" id="4_yql1r"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_h"]
@@ -38,12 +36,6 @@ shape = SubResource("RectangleShape2D_wall_v")
 
 [node name="物件" type="Node2D" parent="." unique_id=614486412]
 y_sort_enabled = true
-
-[node name="Npc1" parent="." unique_id=1864727420 instance=ExtResource("2_b3w7a")]
-texture_filter = 1
-position = Vector2(-486, -130)
-
-[node name="Npc2" parent="." unique_id=650547407 instance=ExtResource("3_4rr2b")]
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=2073592116]
 position = Vector2(0, -18)

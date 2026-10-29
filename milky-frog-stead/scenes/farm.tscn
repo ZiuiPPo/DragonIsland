@@ -1,96 +1,97 @@
-[gd_scene format=3 uid="uid://2s17ayjig21q"]
+[gd_scene format=4 uid="uid://2s17ayjig21q"]
 
-[ext_resource type="PackedScene" uid="uid://do4shqjy2e3ob" path="res://scenes/npc/npc.tscn" id="1_jjgid"]
 [ext_resource type="PackedScene" uid="uid://dc16olu8klj86" path="res://scenes/farm/level.tscn" id="1_k3ns2"]
-[ext_resource type="PackedScene" uid="uid://da2meef22k0ha" path="res://scenes/npc/npc_2.tscn" id="4_k3ns2"]
 [ext_resource type="Script" uid="uid://cywne0lnoahul" path="res://scripts/core/camera_controller.gd" id="5_camera"]
+[ext_resource type="PackedScene" uid="uid://bg7413xx822vf" path="res://scenes/ui/sidebar.tscn" id="6_sidebar"]
+[ext_resource type="PackedScene" uid="uid://ctcndkuciujlw" path="res://scenes/ui/coin_counter.tscn" id="7_coin"]
+[ext_resource type="Script" uid="uid://bry1crmboar2q" path="res://scripts/staff/staff_spawner.gd" id="8_staff"]
+[ext_resource type="Script" uid="uid://bst85clfrwgj1" path="res://scripts/world/grass_field_2d.gd" id="9_grass"]
+[ext_resource type="Texture2D" uid="uid://2tkb0aa5qq7v" path="res://assets/sprites/decorations/grass_tuft.png" id="10_tuft"]
+[ext_resource type="Texture2D" uid="uid://boww5q78e82sm" path="res://assets/textures/noise/grass_noise.png" id="11_noise"]
+[ext_resource type="Shader" uid="uid://c7f20hhmg3das" path="res://shaders/grass_tuft_2d.gdshader" id="12_tuft_shader"]
+[ext_resource type="Script" path="res://scripts/farm/farm_game.gd" id="13_farm"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_h"]
-size = Vector2(2448, 200)
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_grass_tuft"]
+shader = ExtResource("12_tuft_shader")
+shader_parameter/albedo_tex = ExtResource("10_tuft")
+shader_parameter/frame_count = 4.0
+shader_parameter/pal_0_lo = Color(0.639, 0.808, 0.098, 1)
+shader_parameter/pal_0_mid = Color(0.769, 0.902, 0.278, 1)
+shader_parameter/pal_0_hi = Color(0.831, 0.949, 0.376, 1)
+shader_parameter/pal_1_lo = Color(0.584, 0.773, 0.059, 1)
+shader_parameter/pal_1_mid = Color(0.725, 0.875, 0.227, 1)
+shader_parameter/pal_1_hi = Color(0.78, 0.918, 0.31, 1)
+shader_parameter/pal_2_lo = Color(0.522, 0.714, 0.039, 1)
+shader_parameter/pal_2_mid = Color(0.663, 0.827, 0.176, 1)
+shader_parameter/pal_2_hi = Color(0.729, 0.882, 0.259, 1)
+shader_parameter/palette_strength = 1.0
+shader_parameter/noise_tex = ExtResource("11_noise")
+shader_parameter/patch_scale = 900.0
+shader_parameter/patch_contrast = 1.15
+shader_parameter/patch_bias = 0.0
+shader_parameter/patch_dither = 0.1
+shader_parameter/patch_strength = 0.0
+shader_parameter/brightness_jitter = 0.05
+shader_parameter/wind_dir = Vector2(1, 0.35)
+shader_parameter/wind_speed = 26.0
+shader_parameter/wind_scale = 760.0
+shader_parameter/gust_spread = 42.0
+shader_parameter/gust_gain = 2.8
+shader_parameter/gust_bias = -0.22
+shader_parameter/gust_stretch = 0.42
+shader_parameter/wind_slide = 0.0
+shader_parameter/wind_shear = 1.2
+shader_parameter/shear_pow = 1.7
+shader_parameter/flutter = 0.5
+shader_parameter/anim_fps = 9.0
+shader_parameter/pixel_snap = 1.0
+shader_parameter/pushers = PackedVector4Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_v"]
-size = Vector2(200, 2448)
-
-[node name="农场" type="Node2D" unique_id=1870938765]
+[node name="Framland" type="Node2D" unique_id=1870938765]
+script = ExtResource("13_farm")
 
 [node name="Level" parent="." unique_id=570364745 instance=ExtResource("1_k3ns2")]
 texture_filter = 1
 
-[node name="边界" type="StaticBody2D" parent="." unique_id=700211074]
+[node name="GrassField" type="Node2D" parent="." unique_id=1639352551]
+z_index = -5
+material = SubResource("ShaderMaterial_grass_tuft")
+position = Vector2(-16, -155)
+script = ExtResource("9_grass")
+area = Rect2(-600, -200, 1100, 1000)
+cell_size = 24.0
+density = 0.85
+sprite = ExtResource("10_tuft")
+frame_size = Vector2i(16, 16)
+frame_count = 4
+subdivide = 4
+tuft_material = SubResource("ShaderMaterial_grass_tuft")
+mask_mode = "terrain"
+mask_path = NodePath("../Level/IslandTerrain")
+avoid_paths = Array[NodePath]([NodePath("../Level/Layers/FramlandLayer"), NodePath("../Level/Layers/BeachLayer")])
+pusher_group = &"grass_pusher"
+pusher_radius = 38.0
+pusher_strength = 5.0
 
-[node name="上" type="CollisionShape2D" parent="边界" unique_id=1412287697]
-position = Vector2(0, -1124)
-shape = SubResource("RectangleShape2D_wall_h")
-
-[node name="下" type="CollisionShape2D" parent="边界" unique_id=1588601773]
-position = Vector2(-1, 1120)
-shape = SubResource("RectangleShape2D_wall_h")
-
-[node name="左" type="CollisionShape2D" parent="边界" unique_id=703557608]
-position = Vector2(-1033, 2)
-shape = SubResource("RectangleShape2D_wall_v")
-
-[node name="右" type="CollisionShape2D" parent="边界" unique_id=1673978815]
-position = Vector2(1216, 1)
-shape = SubResource("RectangleShape2D_wall_v")
-
-[node name="物件" type="Node2D" parent="." unique_id=614486412]
-y_sort_enabled = true
-
-[node name="Npc1" parent="." unique_id=1864727420 instance=ExtResource("1_jjgid")]
-texture_filter = 1
-position = Vector2(65, 97)
-
-[node name="Npc2" parent="." unique_id=650547407 instance=ExtResource("4_k3ns2")]
+[node name="StaffSpawner" type="Node2D" parent="." unique_id=553987922]
+position = Vector2(0, 80)
+script = ExtResource("8_staff")
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=2073592116]
-position = Vector2(0, -18)
+position = Vector2(-3, -38)
 script = ExtResource("5_camera")
-limits_enabled = true
 limit_bounds = Rect2(-643, -412, 1344, 1280)
 
-[node name="Control" type="Control" parent="." unique_id=796914265]
-layout_mode = 3
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -20.0
-offset_top = -20.0
-offset_right = 20.0
-offset_bottom = 20.0
-grow_horizontal = 2
-grow_vertical = 2
+[node name="UiLayer" type="CanvasLayer" parent="." unique_id=1827252270]
+layer = 10
 
-[node name="TextureRect" type="TextureRect" parent="Control" unique_id=567964705]
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
+[node name="Sidebar" parent="UiLayer" unique_id=588787064 instance=ExtResource("6_sidebar")]
+offset_top = 12.0
+offset_bottom = 12.0
 
-[node name="VBoxContainer" type="VBoxContainer" parent="Control" unique_id=1080854198]
-custom_minimum_size = Vector2(500, 200)
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -250.0
-offset_top = -11.0
-offset_right = 250.0
-offset_bottom = 189.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="Begin" type="Button" parent="Control/VBoxContainer" unique_id=560532400]
-layout_mode = 2
-text = "开始游戏"
-
-[node name="Gameset" type="Button" parent="Control/VBoxContainer" unique_id=210463779]
-layout_mode = 2
-text = "游戏设置"
-
-[node name="Exit" type="Button" parent="Control/VBoxContainer" unique_id=180289090]
-layout_mode = 2
-text = "退出游戏"
+[node name="CoinCounter" parent="UiLayer" unique_id=772167797 instance=ExtResource("7_coin")]
+offset_left = 40.0
+offset_top = 40.0
+offset_right = 300.0
+offset_bottom = 118.0
+start_gold = 500
