@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cj71buxdv6enj"
-path="res://.godot/imported/开始界面.png-ecb6ee322ff60320eea7bd924641f364.ctex"
+uid="uid://btcngsxbrkq0k"
+path="res://.godot/imported/startback.png-5fff49357632da06322338cf83b6f472.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://scenes/ui/开始界面.png"
-dest_files=["res://.godot/imported/开始界面.png-ecb6ee322ff60320eea7bd924641f364.ctex"]
+source_file="res://assets/start/startback.png"
+dest_files=["res://.godot/imported/startback.png-5fff49357632da06322338cf83b6f472.ctex"]
 
 [params]
 

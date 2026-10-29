@@ -1,0 +1,79 @@
+[gd_scene format=3 uid="uid://dvflctv0u3jh7"]
+
+[ext_resource type="Script" uid="uid://dt8h1x7g4am53" path="res://scenes/main_menu.gd" id="1_dv4un"]
+[ext_resource type="Texture2D" uid="uid://cj71buxdv6enj" path="res://scenes/ui/开始界面.png" id="1_jng1h"]
+
+[node name="MainMenu" type="Control" unique_id=1567833914]
+custom_minimum_size = Vector2(900, 500)
+layout_mode = 3
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_dv4un")
+
+[node name="TextureRect" type="TextureRect" parent="." unique_id=2140364841]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("1_jng1h")
+expand_mode = 1
+
+[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=251216835]
+custom_minimum_size = Vector2(500, 200)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -250.0
+offset_top = -34.0
+offset_right = 250.0
+offset_bottom = 166.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Begin" type="Button" parent="VBoxContainer" unique_id=269145754]
+layout_mode = 2
+text = "开始游戏"
+
+[node name="Gameset" type="Button" parent="VBoxContainer" unique_id=1279594406]
+layout_mode = 2
+text = "游戏设置"
+
+[node name="Exit" type="Button" parent="VBoxContainer" unique_id=1547119952]
+layout_mode = 2
+text = "退出游戏"
+
+[node name="Label" type="Label" parent="." unique_id=1497438634]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -32.0
+offset_top = 71.0
+offset_right = 32.0
+offset_bottom = 94.0
+grow_horizontal = 2
+text = "奶龙种地"
+
+[node name="TextureButton" type="TextureButton" parent="." unique_id=452913510]
+custom_minimum_size = Vector2(450, 150)
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[connection signal="pressed" from="VBoxContainer/Begin" to="." method="_on_begin_pressed"]
+[connection signal="pressed" from="VBoxContainer/Gameset" to="." method="_on_gameset_pressed"]
+[connection signal="pressed" from="VBoxContainer/Exit" to="." method="_on_exit_pressed"]
