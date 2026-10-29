@@ -886,7 +886,7 @@ z_index = -30
 [node name="IslandImage" type="Sprite2D" parent="." unique_id=1019082087]
 z_index = -28
 texture_filter = 1
-scale = Vector2(0.62, 0.62)
+scale = Vector2(2.48, 2.48)
 texture = ExtResource("5_bg3wq")
 
 [node name="SeaCanvas" type="MeshInstance2D" parent="." unique_id=1842746190]

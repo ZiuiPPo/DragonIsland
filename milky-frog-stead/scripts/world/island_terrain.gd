@@ -147,6 +147,7 @@ func _load_shore_mask() -> void:
 			wall[i] = 1 if (is_red or is_blue) else 0
 			cliff[i] = 1 if is_red else 0
 
+
 	# 2) 从四条边往里灌，能灌到的就是「圈外」
 	var outside := PackedByteArray()
 	outside.resize(n)
