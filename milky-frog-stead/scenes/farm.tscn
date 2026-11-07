@@ -1,5 +1,7 @@
 [gd_scene format=4 uid="uid://2s17ayjig21q"]
 
+[ext_resource type="PackedScene" path="res://scenes/farm/cloud_layer.tscn" id="14_clouds"]
+
 [ext_resource type="PackedScene" uid="uid://dc16olu8klj86" path="res://scenes/farm/level.tscn" id="1_k3ns2"]
 [ext_resource type="Script" uid="uid://cywne0lnoahul" path="res://scripts/core/camera_controller.gd" id="5_camera"]
 [ext_resource type="PackedScene" uid="uid://bg7413xx822vf" path="res://scenes/ui/sidebar.tscn" id="6_sidebar"]
@@ -10,6 +12,16 @@
 [ext_resource type="Texture2D" uid="uid://boww5q78e82sm" path="res://assets/textures/noise/grass_noise.png" id="11_noise"]
 [ext_resource type="Shader" uid="uid://c7f20hhmg3das" path="res://shaders/grass_tuft_2d.gdshader" id="12_tuft_shader"]
 [ext_resource type="Script" uid="uid://cdjuoqpwiyjr6" path="res://scripts/farm/farm_game.gd" id="13_farm"]
+
+[ext_resource type="Script" path="res://scripts/world/day_night_cycle.gd" id="15_day_night"]
+
+[sub_resource type="Gradient" id="Gradient_day_night"]
+interpolation_mode = 0
+offsets = PackedFloat32Array(0, 0.208333, 0.25, 0.375, 0.5, 0.583333, 0.666667, 0.75, 0.875, 1)
+colors = PackedColorArray(0.28, 0.34, 0.52, 1, 0.28, 0.34, 0.52, 1, 0.76, 0.61, 0.58, 1, 0.96, 0.86, 0.74, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0.98, 0.92, 0.84, 1, 0.88, 0.61, 0.48, 1, 0.28, 0.34, 0.52, 1, 0.28, 0.34, 0.52, 1)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture_day_night"]
+gradient = SubResource("Gradient_day_night")
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_grass_tuft"]
 shader = ExtResource("12_tuft_shader")
@@ -100,3 +112,9 @@ offset_top = 40.0
 offset_right = 300.0
 offset_bottom = 118.0
 start_gold = 500
+
+[node name="CloudLayer" parent="." instance=ExtResource("14_clouds")]
+
+[node name="DayNightCycle" type="CanvasModulate" parent="."]
+script = ExtResource("15_day_night")
+environment_gradient = SubResource("GradientTexture_day_night")

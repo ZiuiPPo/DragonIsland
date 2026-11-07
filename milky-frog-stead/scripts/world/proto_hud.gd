@@ -32,8 +32,6 @@ func _capture(path: String, jump: Vector2) -> void:
 	# --tiles：顺手验证一下「分类 → 写瓦片」那条路（关掉底图，只留瓦片 + 水）
 	if "--tiles" in OS.get_cmdline_user_args():
 		_field.toggle_tiles()
-		if mat:
-			mat.set_shader_parameter("ground_mix", 0.0)
 	await get_tree().create_timer(2.0).timeout
 	await RenderingServer.frame_post_draw
 	var img := get_viewport().get_texture().get_image()
@@ -69,7 +67,7 @@ func _process(delta: float) -> void:
 	var pos := p.global_position if p else Vector2.ZERO
 	var mats := ["草地", "沙滩", "水体"]
 	var mat_name: String = mats[_field.material_at_world(pos)]
-	text = "FPS %d    烘焙 %.1f ms    贴图 %dx%d\n世界 (%.0f, %.0f)    区块 (%d, %d)    脚下：%s\nWASD 移动  Shift 加速  F1 瓦片  F2 底图  R 回原点" % [
+	text = "FPS %d    烘焙 %.1f ms    贴图 %dx%d\n世界 (%.0f, %.0f)    区块 (%d, %d)    脚下：%s\nWASD 移动  Shift 加速  F1 瓦片  R 回原点" % [
 		Engine.get_frames_per_second(),
 		_field.bake_ms,
 		_field.last_rect.size.x, _field.last_rect.size.y,
@@ -86,12 +84,6 @@ func _unhandled_input(event: InputEvent) -> void:
 	match k.keycode:
 		KEY_F1:
 			_field.toggle_tiles()
-		KEY_F2:
-			var canvas := _field.get_node_or_null("../WaterCanvas") as MeshInstance2D
-			if canvas and canvas.material is ShaderMaterial:
-				var mat := canvas.material as ShaderMaterial
-				var cur: float = mat.get_shader_parameter("ground_mix")
-				mat.set_shader_parameter("ground_mix", 0.0 if cur > 0.5 else 1.0)
 		KEY_R:
 			var p := _field.get_parent().get_node_or_null("Player") as Node2D
 			if p:

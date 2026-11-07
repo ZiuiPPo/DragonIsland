@@ -1,5 +1,5 @@
 shader_type canvas_item;
-render_mode unshaded;
+render_mode blend_mix;
 uniform sampler2D mask_tex : filter_linear, repeat_disable;
 uniform vec2 rect_origin;
 uniform vec2 rect_size = vec2(1.0);

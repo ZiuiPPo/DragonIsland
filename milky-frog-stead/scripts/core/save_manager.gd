@@ -9,7 +9,7 @@ extends Node
 ## 一次新游戏 / 读档的流程：
 ##   1. 主菜单调用 start_new_game() 或 load_save()；
 ##   2. 农场场景 _ready 里调用 consume_pending_gold() 把金币落到 CoinCounter；
-##   3. 农场场景调用 begin_session() 启动定时自动存档；
+##   3. 农场场景调用 begin_session() 启用数据变化时的自动存档；
 ##   4. 离开农场 / 手动保存 / 关闭窗口时调用 save_game()。
 
 const SAVE_PATH: String = "user://save.json"
@@ -18,12 +18,10 @@ const SAVE_VERSION: int = 1
 ## 新游戏默认金币，和 scenes/farm.tscn 里 CoinCounter.start_gold 保持一致
 const DEFAULT_GOLD: int = 500
 
-## 农场场景与主菜单场景：菜单和结算按钮跳转时统一用这里，避免路径写散
+## 农场场景与主菜单场景：菜单按钮跳转时统一用这里，避免路径写散
 const GAME_SCENE: String = "res://scenes/farm.tscn"
 const MENU_SCENE: String = "res://scenes/main/scene_handler.tscn"
 
-## 每隔多少秒自动存一次
-const AUTOSAVE_INTERVAL: float = 30.0
 ## 金币 / 名册变化后延迟多久再写盘，避免连续变化时频繁写文件
 const AUTOSAVE_DELAY: float = 1.5
 
@@ -40,7 +38,7 @@ var _session_active: bool = false
 var _last_gold: int = DEFAULT_GOLD
 
 var _autosave_timer: Timer
-var _periodic_timer: Timer
+var _pending_clock: Dictionary = {}
 
 
 func _ready() -> void:
@@ -50,12 +48,6 @@ func _ready() -> void:
 	_autosave_timer.wait_time = AUTOSAVE_DELAY
 	_autosave_timer.timeout.connect(save_game)
 	add_child(_autosave_timer)
-
-	_periodic_timer = Timer.new()
-	_periodic_timer.name = "AutosaveInterval"
-	_periodic_timer.wait_time = AUTOSAVE_INTERVAL
-	_periodic_timer.timeout.connect(_on_periodic_autosave)
-	add_child(_periodic_timer)
 
 	# 招聘 / 清空名册都触发自动存档；主菜单阶段 _session_active 为 false，不会误写。
 	if not StaffRegistry.staff_changed.is_connected(request_autosave):
@@ -91,12 +83,12 @@ func get_save_summary() -> Dictionary:
 
 ## 开始新游戏：清空名册、清掉旧存档，等农场场景 _ready 后写一份全新的。
 func start_new_game() -> void:
+	_pending_clock = {}
 	StaffRegistry.clear()
 	_pending_gold = DEFAULT_GOLD
 	_last_gold = DEFAULT_GOLD
 	_session_active = false
 	_autosave_timer.stop()
-	_periodic_timer.stop()
 	delete_save()
 
 
@@ -107,12 +99,12 @@ func load_save() -> bool:
 	if data.is_empty():
 		return false
 
+	_pending_clock = data.get("clock", {}) if data.get("clock", {}) is Dictionary else {}
 	StaffRegistry.from_dict(data.get("staff", []))
 	_pending_gold = int(data.get("gold", DEFAULT_GOLD))
 	_last_gold = _pending_gold
 	_session_active = false
 	_autosave_timer.stop()
-	_periodic_timer.stop()
 	return true
 
 
@@ -150,14 +142,12 @@ func request_autosave(_value: int = 0) -> void:
 		_autosave_timer.start()
 
 
-## 进入农场后调用：启动自动存档，并立刻落一份初始进度。
+## 进入农场后调用：启用数据变化时的自动存档，并立刻落一份初始进度。
 func begin_session() -> void:
 	_session_active = true
 	_last_gold = _read_gold_from_scene()
 	if _autosave_timer != null:
 		_autosave_timer.stop()
-	if _periodic_timer != null:
-		_periodic_timer.start()
 	save_game()
 
 
@@ -169,8 +159,6 @@ func end_session() -> void:
 	_pending_gold = -1
 	if _autosave_timer != null:
 		_autosave_timer.stop()
-	if _periodic_timer != null:
-		_periodic_timer.stop()
 
 
 ## 写存档。主菜单阶段调用返回 false，避免把菜单状态覆盖掉真实进度。
@@ -184,6 +172,7 @@ func save_game() -> bool:
 		"scene": GAME_SCENE,
 		"gold": _read_gold_from_scene(),
 		"staff": StaffRegistry.to_dict(),
+		"clock": _read_clock_from_scene(),
 	}
 
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
@@ -232,12 +221,19 @@ func _read_gold_from_scene() -> int:
 	return _last_gold
 
 
-func _on_periodic_autosave() -> void:
-	if _session_active:
-		save_game()
-
-
 ## 直接点窗口右上角关闭时，也把当前进度落盘（此时场景树还没拆，CoinCounter 还在）。
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST and _session_active:
 		save_game()
+
+
+func consume_pending_clock() -> Dictionary:
+	var clock := _pending_clock
+	_pending_clock = {}
+	return clock
+
+func _read_clock_from_scene() -> Dictionary:
+	var clock := get_tree().get_first_node_in_group("day_night_cycle")
+	if clock != null:
+		return clock.get_clock_state()
+	return {"day": 1, "hour": 9.0}

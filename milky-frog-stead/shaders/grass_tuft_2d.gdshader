@@ -1,5 +1,5 @@
 shader_type canvas_item;
-render_mode unshaded, blend_mix;
+render_mode blend_mix;
 
 // ═══════════════════════════════════════════════════════════════════════
 //  2D 像素草地 · 草丛层

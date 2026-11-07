@@ -4,7 +4,7 @@
 [ext_resource type="Texture2D" uid="uid://dvanfvqsqyp5a" path="res://assets/tilesets/soil.png" id="2_oi3di"]
 [ext_resource type="Texture2D" uid="uid://c7nteylg3bkpf" path="res://assets/sprites/backgrounds/island_sea_x4_pixel_4032x3624.png" id="5_bg3wq"]
 [ext_resource type="Shader" uid="uid://b04qxauwqygje" path="res://shaders/water_world.gdshader" id="9_sea_shader"]
-[ext_resource type="PackedScene" path="res://scenes/chicken/chicken.tscn" id="9_tfdwu"]
+[ext_resource type="PackedScene" uid="uid://b8klti67wemq3" path="res://scenes/chicken/chicken.tscn" id="9_tfdwu"]
 [ext_resource type="Script" uid="uid://egbig5qmk1iq" path="res://scripts/world/water_canvas.gd" id="10_sea_canvas"]
 [ext_resource type="Script" uid="uid://kru1ymsubdy4" path="res://scripts/world/island_terrain.gd" id="11_island"]
 [ext_resource type="Texture2D" uid="uid://boww5q78e82sm" path="res://assets/textures/noise/grass_noise.png" id="12_grass_noise"]
@@ -814,16 +814,10 @@ shader_parameter/rect_origin = Vector2(0, 0)
 shader_parameter/rect_size = Vector2(1024, 1024)
 shader_parameter/sdf_range = 24.0
 shader_parameter/tile_size = 16.0
-shader_parameter/beach_width = 4.5
 shader_parameter/shallow_width = 12.0
-shader_parameter/col_grass = Color(0.47, 0.68, 0.28, 1)
-shader_parameter/col_grass_dark = Color(0.22, 0.38, 0.13, 1)
-shader_parameter/col_sand_wet = Color(0.72, 0.55, 0.3, 1)
-shader_parameter/col_sand_dry = Color(0.83, 0.68, 0.46, 1)
 shader_parameter/col_water_shallow = Color(0.98, 0.87, 0.56, 1)
 shader_parameter/col_water_deep = Color(0.86, 0.5, 0.16, 1)
 shader_parameter/pixel_size = 4.0
-shader_parameter/ground_mix = 0.0
 shader_parameter/grain = 0.1
 shader_parameter/caustics_size = 300.0
 shader_parameter/caustics_y_squash = 1.3
@@ -859,12 +853,9 @@ shader_parameter/edge_pixel = 4.0
 shader_parameter/edge_fps = 8.0
 shader_parameter/tide_amp = 0.9
 shader_parameter/tide_speed = 1.1
-shader_parameter/wet_strength = 0.55
 shader_parameter/debug_cliff = 0.0
-shader_parameter/col_wet = Color(0.86, 0.76, 0.58, 1)
 shader_parameter/shore_offset = 0.0
 shader_parameter/col_foam = Color(1, 1, 1, 1)
-shader_parameter/tile_edge_dither = 0.0
 
 [node name="Level" type="Node2D" unique_id=570364745]
 metadata/_edit_horizontal_guides_ = [-136.0]

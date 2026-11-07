@@ -38,7 +38,7 @@ const MAT_WATER := 2
 @export var warp_strength: float = 55.0
 ## 水 / 沙 分界高度
 @export var h_water: float = 0.46
-## 沙 / 草 分界高度（只用于玩法分类，画面上的沙滩宽度由 shader 的 beach_width 控制）
+## 沙 / 草 分界高度（用于玩法与瓦片分类，水体着色器不绘制陆地）
 @export var h_sand: float = 0.49
 ## 水深归一化范围：从水线往下多少高度算"深水"
 @export var depth_range: float = 0.22

@@ -3,20 +3,6 @@
 [ext_resource type="Script" path="res://scripts/ui/menu_clock.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://bymita4x2dx4l" path="res://assets/icons/hud/clock.png" id="1_clock"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bar_bg"]
-bg_color = Color(0.36, 0.32000002, 0.24, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bar_fill"]
-bg_color = Color(0.86, 0.71, 0.35, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-
 [node name="MenuClock" type="VBoxContainer"]
 layout_mode = 3
 anchors_preset = 0
@@ -51,49 +37,40 @@ size_flags_vertical = 0
 theme_override_constants/separation = 2
 
 [node name="Day" type="Label" parent="DayRow/Text"]
+unique_name_in_owner = true
 layout_mode = 2
 text = "第 1 天"
 
-[node name="Phase" type="Label" parent="DayRow/Text"]
+[node name="PhaseRow" type="HBoxContainer" parent="DayRow/Text"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Phase" type="Label" parent="DayRow/Text/PhaseRow"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.25, 0.38, 0.2, 1)
 theme_override_font_sizes/font_size = 14
-text = "早晨 · 配置时间"
+text = "早晨"
 
-[node name="Spacer" type="Control" parent="."]
-custom_minimum_size = Vector2(0, 8)
+[node name="ChangeTimeButton" type="Button" parent="DayRow/Text/PhaseRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(64, 28)
 layout_mode = 2
-
-[node name="ProgressLabel" type="Label" parent="."]
-layout_mode = 2
-theme_override_font_sizes/font_size = 14
-text = "营业进度"
-
-[node name="BusinessBar" type="ProgressBar" parent="."]
-custom_minimum_size = Vector2(0, 16)
-layout_mode = 2
-theme_override_styles/background = SubResource("StyleBoxFlat_bar_bg")
-theme_override_styles/fill = SubResource("StyleBoxFlat_bar_fill")
-value = 100.0
-show_percentage = false
+theme_override_font_sizes/font_size = 13
+text = "切换时间"
+tooltip_text = "切换到下一个时段：早晨、午后、黄昏、夜晚"
 
 [node name="Grow" type="Control" parent="."]
 layout_mode = 2
 size_flags_vertical = 3
-
-[node name="Hint" type="Label" parent="."]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.25, 0.2, 0.12, 0.7)
-theme_override_font_sizes/font_size = 13
-text = "营业 90 秒后自动打烊结算"
-text_overrun_behavior = 3
 
 [node name="SaveHint" type="Label" parent="."]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.32, 0.46, 0.25, 1)
 theme_override_font_sizes/font_size = 12
-text = "进度每 30 秒自动保存"
+text = ""
+visible = false
 text_overrun_behavior = 3
 
 [node name="SaveButton" type="Button" parent="."]
