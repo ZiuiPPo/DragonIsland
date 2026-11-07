@@ -17,6 +17,11 @@ func _go(path: String) -> void:
 		if cam:
 			cam.limits_enabled = false
 			cam.global_position = Vector2(float(args[ci + 1]), float(args[ci + 2]))
+	var zi := args.find("--zoom")
+	if zi >= 0 and args.size() > zi + 1:
+		var camera := get_viewport().get_camera_2d()
+		camera.set_process(false)
+		camera.zoom = Vector2.ONE * float(args[zi + 1])
 	await get_tree().create_timer(2.0).timeout
 	await RenderingServer.frame_post_draw
 	var img := get_viewport().get_texture().get_image()
@@ -53,3 +58,4 @@ func _dump(n: Node) -> void:
 			print("         atlas coords: ", ", ".join(top.slice(0, 8).map(
 					func(k): return "%s x%d" % [k, counts[k]])))
 		_dump(c)
+

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bu8ongbtrihw2"
-path="res://.godot/imported/小麦-Sheet.png-632bd8c5f51c1effa685a3686d1f684e.ctex"
+uid="uid://biebc50mchlvi"
+path="res://.godot/imported/npc4_sad_laugh_left.png-6e213d7a8fbdd768eb41f48987eef690.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/fonts/小麦-Sheet.png"
-dest_files=["res://.godot/imported/小麦-Sheet.png-632bd8c5f51c1effa685a3686d1f684e.ctex"]
+source_file="res://assets/sprites/npcs/staff/npc4_sad_laugh_left.png"
+dest_files=["res://.godot/imported/npc4_sad_laugh_left.png-6e213d7a8fbdd768eb41f48987eef690.ctex"]
 
 [params]
 

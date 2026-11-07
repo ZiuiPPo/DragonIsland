@@ -85,7 +85,7 @@ extends CharacterBody2D
 @export var food_search_radius: float = 700.0
 
 ## 到食盆旁边时的落点随机半径（像素）。几只鸡一起去吃时不会叠成一只
-@export var food_queue_spread: float = 12.0
+@export var food_queue_spread: float = 18.0
 
 @export_group("产蛋")
 ## 每次蹲下，起身时下蛋的概率。**故意设得很小** —— 蛋是稀罕东西
@@ -392,8 +392,9 @@ func _finish_crouch() -> void:
 ##   B. 直接在下面 TODO 的地方生成
 func _lay_egg() -> void:
 	# 蛋落在屁股后面：朝右走时屁股在左，反之在右
+	# （偏移量按现在屏幕上的鸡身大小给的：128px 美术 × 精灵 scale 0.8，身宽约 42px）
 	var behind := -1.0 if _facing_right else 1.0
-	var egg_position := global_position + Vector2(behind * 10.0, -4.0)
+	var egg_position := global_position + Vector2(behind * 13.0, -5.0)
 
 	if debug_log:
 		print("[小鸡] %s 下了一个蛋：%s" % [name, egg_position])
