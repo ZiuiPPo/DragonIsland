@@ -1,6 +1,14 @@
+@warning_ignore("missing_tool")
 class_name IslandTerrain
 extends TerrainField
 ## 岛 = 一张抠图（`assets/sprites/island/island_cutout.png`），不是程序化生成的。
+##
+## 为什么不加 `@tool`（基类 TerrainField 是 @tool，所以这里显式忽略 missing_tool）：
+##   本脚本是**纯运行时**的。`_ready()` → `_setup_layers()` 会 `_beach.clear()`、
+##   `_ready_beach_tileset()` 还会现建一个 TileSet 塞给沙滩层；一旦在编辑器里跑，
+##   这些运行时产物会被烤进 level.tscn（同一个坑见 terrain_field.gd 里
+##   「编辑器里不写运行时贴图参数」那段注释）。岛又要拿场景里的 Camera2D 定位，
+##   在编辑器里也拿不到。真想要编辑器预览，先把这两处副作用挡掉再加 @tool。
 ##
 ## 分工：
 ##   · **陆地形状**：`IslandImage`（Sprite2D）这张图的 alpha。alpha > 阈值算陆地。
@@ -147,7 +155,6 @@ func _load_shore_mask() -> void:
 			wall[i] = 1 if (is_red or is_blue) else 0
 			cliff[i] = 1 if is_red else 0
 
-
 	# 2) 从四条边往里灌，能灌到的就是「圈外」
 	var outside := PackedByteArray()
 	outside.resize(n)
@@ -164,7 +171,8 @@ func _load_shore_mask() -> void:
 			continue
 		outside[i] = 1
 		var x0 := i % w
-		var y0 := int(i / w)
+		# 这里本来就该是整数除法（i、w 都非负），写成 floorf 只是为了不触发 integer_division 警告
+		var y0 := floori(float(i) / float(w))
 		if x0 > 0:
 			stack.append(i - 1)
 		if x0 < w - 1:

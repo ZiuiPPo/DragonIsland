@@ -6,10 +6,13 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/menus/menu_clock.tscn" id="4_menu_clock"]
 [ext_resource type="Texture2D" uid="uid://wco8i5nowkqq" path="res://assets/icons/recruit/npc1.png" id="4_qcjxn"]
 [ext_resource type="PackedScene" path="res://scenes/ui/menus/menu_warehouse.tscn" id="5_menu_warehouse"]
-[ext_resource type="Texture2D" uid="uid://bymita4x2dx4l" path="res://assets/icons/hud/clock.png" id="7_icon_clock"]
-[ext_resource type="Texture2D" uid="uid://dp1ucdta1xyxb" path="res://assets/icons/hud/warehouse.png" id="8_icon_warehouse"]
 [ext_resource type="PackedScene" path="res://scenes/ui/menus/menu_recruit.tscn" id="6_menu_recruit"]
-[ext_resource type="Texture2D" path="res://assets/icons/hud/recruit.png" id="9_icon_recruit"]
+[ext_resource type="Texture2D" uid="uid://bymita4x2dx4l" path="res://assets/icons/hud/clock.png" id="7_icon_clock"]
+[ext_resource type="Texture2D" uid="uid://dpgojn0y2fg68" path="res://assets/icons/gameplay_character/warehouse.png" id="8_icon_warehouse"]
+[ext_resource type="Texture2D" uid="uid://b3760umr66egn" path="res://assets/icons/gameplay_character/recruit.png" id="9_icon_recruit"]
+[ext_resource type="Texture2D" uid="uid://bikfvqo60glc8" path="res://assets/icons/gameplay_character/building.png" id="icon_building"]
+[ext_resource type="Texture2D" uid="uid://be5ahen7a68pi" path="res://assets/icons/gameplay_character/recipes.png" id="icon_recipes"]
+[ext_resource type="Texture2D" uid="uid://6jfg358rg340" path="res://assets/icons/gameplay_character/shop.png" id="icon_shop"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_menu_bg"]
 bg_color = Color(0.5846119, 0.5531883, 0.42044926, 1)
@@ -121,10 +124,10 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 8
 size_flags_vertical = 0
-theme_override_constants/separation = 30
+theme_override_constants/separation = 16
 
 [node name="RecruitButton" type="Button" parent="Layout/IconColumn" unique_id=315704521]
-custom_minimum_size = Vector2(60, 60)
+custom_minimum_size = Vector2(72, 72)
 layout_mode = 2
 tooltip_text = "招聘"
 focus_mode = 0
@@ -143,10 +146,10 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 12.0
-offset_top = 12.0
-offset_right = -12.0
-offset_bottom = -12.0
+offset_left = 6.0
+offset_top = 6.0
+offset_right = -6.0
+offset_bottom = -6.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
@@ -155,7 +158,7 @@ expand_mode = 1
 stretch_mode = 5
 
 [node name="NpcStatusButton" type="Button" parent="Layout/IconColumn" unique_id=2064832432]
-custom_minimum_size = Vector2(60, 60)
+custom_minimum_size = Vector2(72, 72)
 layout_mode = 2
 tooltip_text = "员工状态"
 focus_mode = 0
@@ -174,10 +177,10 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 13.0
-offset_top = 11.0
-offset_right = -8.0
-offset_bottom = -12.0
+offset_left = 12.0
+offset_top = 10.0
+offset_right = -14.0
+offset_bottom = -14.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
@@ -186,7 +189,7 @@ expand_mode = 1
 stretch_mode = 5
 
 [node name="ClockButton" type="Button" parent="Layout/IconColumn" unique_id=1311177739]
-custom_minimum_size = Vector2(60, 60)
+custom_minimum_size = Vector2(72, 72)
 layout_mode = 2
 tooltip_text = "时间"
 focus_mode = 0
@@ -205,10 +208,10 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 12.0
-offset_top = 12.0
-offset_right = -12.0
-offset_bottom = -12.0
+offset_left = 6.0
+offset_top = 6.0
+offset_right = -6.0
+offset_bottom = -6.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
@@ -217,7 +220,7 @@ expand_mode = 1
 stretch_mode = 5
 
 [node name="WarehouseButton" type="Button" parent="Layout/IconColumn" unique_id=601797867]
-custom_minimum_size = Vector2(60, 60)
+custom_minimum_size = Vector2(72, 72)
 layout_mode = 2
 tooltip_text = "仓库"
 focus_mode = 0
@@ -236,13 +239,88 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 12.0
-offset_top = 12.0
-offset_right = -12.0
-offset_bottom = -12.0
+offset_left = 6.0
+offset_top = 6.0
+offset_right = -6.0
+offset_bottom = -6.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 texture = ExtResource("8_icon_warehouse")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ShopButton" type="Button" parent="Layout/IconColumn" unique_id=215383886]
+self_modulate = Color(1, 1, 1, 0.65)
+custom_minimum_size = Vector2(72, 72)
+layout_mode = 2
+tooltip_text = "商店（尚未开放）"
+focus_mode = 0
+theme_override_styles/disabled = SubResource("StyleBoxFlat_icon_normal")
+disabled = true
+
+[node name="Icon" type="TextureRect" parent="Layout/IconColumn/ShopButton" unique_id=1870363936]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 6.0
+offset_top = 6.0
+offset_right = -6.0
+offset_bottom = -6.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("icon_shop")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="RecipesButton" type="Button" parent="Layout/IconColumn" unique_id=1409553764]
+self_modulate = Color(1, 1, 1, 0.65)
+custom_minimum_size = Vector2(72, 72)
+layout_mode = 2
+tooltip_text = "菜谱（尚未开放）"
+focus_mode = 0
+theme_override_styles/disabled = SubResource("StyleBoxFlat_icon_normal")
+disabled = true
+
+[node name="Icon" type="TextureRect" parent="Layout/IconColumn/RecipesButton" unique_id=156105244]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 6.0
+offset_top = 6.0
+offset_right = -6.0
+offset_bottom = -6.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("icon_recipes")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="BuildingButton" type="Button" parent="Layout/IconColumn" unique_id=813646787]
+self_modulate = Color(1, 1, 1, 0.65)
+custom_minimum_size = Vector2(72, 72)
+layout_mode = 2
+tooltip_text = "建筑（尚未开放）"
+focus_mode = 0
+theme_override_styles/disabled = SubResource("StyleBoxFlat_icon_normal")
+disabled = true
+
+[node name="Icon" type="TextureRect" parent="Layout/IconColumn/BuildingButton" unique_id=440152059]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 6.0
+offset_top = 6.0
+offset_right = -6.0
+offset_bottom = -6.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("icon_building")
 expand_mode = 1
 stretch_mode = 5

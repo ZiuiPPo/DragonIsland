@@ -8,9 +8,9 @@ extends Node2D
 ##   · 一个区块 = 一个 MultiMeshInstance2D = 一次 draw call，方便视口剔除；
 ##   · chunk_px 决定剔除粒度，192 世界像素 ≈ 12 格瓦片。
 ##
-## 位置上有个坑：**必须以全局整数格来铺**，不能让每个区块各铺各的。
+## 位置上有个坑：**必须以统一整数格来铺**，不能让每个区块各铺各的。
 ## 否则区块边界会重算一遍、接缝处草丛叠成一团（3D 里这问题被深度测试掩盖了，
-## 2D 里会直接变成一条深色的缝）。所以这里按世界坐标的整数格遍历，
+## 2D 里会直接变成一条深色的缝）。所以这里按节点局部坐标的统一整数格遍历，
 ## 再按落点把实例分给各自区块，天然不重不漏。
 ##
 ## 用法：
@@ -25,8 +25,16 @@ extends Node2D
 const NOISE_PATH := "res://assets/textures/noise/grass_noise.png"
 
 @export_group("范围与疏密")
-## 铺草的世界矩形
-@export var area := Rect2(-672.0, -420.0, 1000.0, 1000.0)
+## 局部包围框；椭圆模式下宽高分别是两个直径。
+@export var area := Rect2(-672.0, -420.0, 1000.0, 1000.0):
+	set(value):
+		area = value
+		_request_rebuild()
+## 宽高相等时，ellipse 为圆形。
+@export_enum("rectangle", "ellipse") var area_shape := "rectangle":
+	set(value):
+		area_shape = value
+		_request_rebuild()
 ## 每棵草平均占多大一格（世界像素）。越小越密，12~24 比较合适
 @export var cell_size := 18.0
 ## 实际铺出来的比例（会再乘上噪声疏密）
@@ -60,7 +68,7 @@ const NOISE_PATH := "res://assets/textures/noise/grass_noise.png"
 @export var chunk_px := 192
 
 @export_group("遮罩")
-## none = 铺满矩形；tilemap = 只铺有瓦片的地方；terrain = 只铺 TerrainField 判定为草地的格子
+## none = 铺满所选形状；tilemap = 只铺有瓦片的地方；terrain = 只铺 TerrainField 判定为草地的格子
 @export_enum("none", "tilemap", "terrain") var mask_mode := "none"
 @export var mask_path: NodePath
 ## 排除层：这些 TileMapLayer 上有瓦片的格子不长草（农田、沙滩这种"铺了东西"的地方）。
@@ -83,6 +91,7 @@ const NOISE_PATH := "res://assets/textures/noise/grass_noise.png"
 
 var build_ms := 0.0
 var instance_count := 0
+var _rebuild_queued := false
 
 var _noise_w := 0
 var _noise_h := 0
@@ -149,12 +158,12 @@ func rebuild() -> void:
 			var pos := Vector2(
 				(i + 0.5 + (_rnd(h, 1) - 0.5) * jitter * 2.0) * cell,
 				(j + 0.5 + (_rnd(h, 2) - 0.5) * jitter * 2.0) * cell).round()
-			if not area.has_point(pos):
+			if not _contains_point(pos):
 				continue
 
 			# 疏密：和色块反向联动。噪声明亮的那一侧（地面调色板是"日照"）草最旺，
 			# 暗的一侧稀疏但不至于全秃 —— 全秃的那版在大地图上像一块块斑秃。
-			var raw_n := _noise_at(pos, pscale)
+			var raw_n := _noise_at(to_global(pos), pscale)
 			var patch := clampf((raw_n - 0.5) * pcontrast + 0.5 + pbias, 0.0, 1.0)
 			var cover := 0.25 + 0.75 * (1.0 - smoothstep(0.15, 0.85, patch))
 			if _rnd(h, 3) > density * cover:
@@ -175,13 +184,38 @@ func rebuild() -> void:
 				var ang := _rnd(h, 5) * TAU
 				var rad := cell * (0.25 + 0.35 * _rnd(h, 6))
 				var extra := 2 if _rnd(h, 9) < big_chance * 0.5 else 1
-				_add(buckets, (pos + Vector2(cos(ang), sin(ang)) * rad).round(), h, 7, extra)
+				var decor_pos := (pos + Vector2(cos(ang), sin(ang)) * rad).round()
+				if _contains_point(decor_pos) and _in_mask(decor_pos):
+					_add(buckets, decor_pos, h, 7, extra)
 
 	for key in buckets.keys():
 		_build_chunk(key, buckets[key])
 
 	build_ms = (Time.get_ticks_usec() - t0) / 1000.0
 	print("[grass] ", get_debug_info())
+
+
+## Inspector 范围修改合并为一次重建。
+func _request_rebuild() -> void:
+	if not is_node_ready() or _rebuild_queued:
+		return
+	_rebuild_queued = true
+	_rebuild_deferred.call_deferred()
+
+
+func _rebuild_deferred() -> void:
+	_rebuild_queued = false
+	if is_inside_tree():
+		rebuild()
+
+
+func _contains_point(pos: Vector2) -> bool:
+	if area.size.x <= 0.0 or area.size.y <= 0.0 or not area.has_point(pos):
+		return false
+	if area_shape == "ellipse":
+		var offset := (pos - area.get_center()) / (area.size * 0.5)
+		return offset.length_squared() <= 1.0
+	return true
 
 
 func _add(buckets: Dictionary, pos: Vector2, h: int, salt: int, size: int) -> void:
@@ -243,6 +277,7 @@ func _clear() -> void:
 # ─────────────────────────────────────────────────────────────────────
 
 func _in_mask(pos: Vector2) -> bool:
+	var world_pos := to_global(pos)
 	if mask_mode == "none":
 		return true
 	# 排除层优先：农田/沙滩铺过瓦片的地方一律不长（否则草丛会盖在菜地和沙子上）
@@ -252,7 +287,7 @@ func _in_mask(pos: Vector2) -> bool:
 		# 直接跳过。硬调 local_to_map() 会刷一整屏 "Condition tile_set.is_null()" 的报错。
 		if av == null or av.tile_set == null:
 			continue
-		if av.get_cell_source_id(av.local_to_map(av.to_local(pos))) != -1:
+		if av.get_cell_source_id(av.local_to_map(av.to_local(world_pos))) != -1:
 			return false
 	var m := get_node_or_null(mask_path)
 	if m == null:
@@ -266,13 +301,13 @@ func _in_mask(pos: Vector2) -> bool:
 			if scr == null or not scr.is_tool():
 				return true
 		if m.has_method("material_at_world"):
-			return int(m.call("material_at_world", pos)) == 0   # TerrainField.MAT_GRASS
+			return int(m.call("material_at_world", world_pos)) == 0   # TerrainField.MAT_GRASS
 		return true
 	# tilemap：有瓦片的地方才长草（图层可能带 scale，必须走它自己的坐标变换）
 	var layer := m as TileMapLayer
 	if layer == null or layer.tile_set == null:
 		return true
-	return layer.get_cell_source_id(layer.local_to_map(layer.to_local(pos))) != -1
+	return layer.get_cell_source_id(layer.local_to_map(layer.to_local(world_pos))) != -1
 
 
 # ─────────────────────────────────────────────────────────────────────

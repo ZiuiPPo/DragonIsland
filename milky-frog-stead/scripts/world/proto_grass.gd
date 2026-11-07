@@ -116,8 +116,9 @@ func _make_ground() -> TileMapLayer:
 	if _args().has("gdbg"):
 		gmat.set_shader_parameter("debug", float(_args()["gdbg"]))
 	layer.material = gmat
-	var c0 := -GROUND_COLS / 2
-	var r0 := -GROUND_ROWS / 2
+	# 地面网格以原点为中心。这里本来就是整数除法，写成 float 再取整只是为了不触发 integer_division 警告
+	var c0 := int(-GROUND_COLS / 2.0)
+	var r0 := int(-GROUND_ROWS / 2.0)
 	for y in range(r0, r0 + GROUND_ROWS):
 		for x in range(c0, c0 + GROUND_COLS):
 			layer.set_cell(Vector2i(x, y), 0, Vector2i(1, 1))

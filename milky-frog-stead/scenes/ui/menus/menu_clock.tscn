@@ -1,5 +1,6 @@
-[gd_scene format=3]
+[gd_scene load_steps=3 format=3]
 
+[ext_resource type="Script" path="res://scripts/ui/menu_clock.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://bymita4x2dx4l" path="res://assets/icons/hud/clock.png" id="1_clock"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bar_bg"]
@@ -22,6 +23,7 @@ anchors_preset = 0
 offset_right = 256.0
 offset_bottom = 220.0
 theme_override_constants/separation = 12
+script = ExtResource("1_script")
 
 [node name="Title" type="Label" parent="."]
 layout_mode = 2
@@ -85,3 +87,23 @@ theme_override_colors/font_color = Color(0.25, 0.2, 0.12, 0.7)
 theme_override_font_sizes/font_size = 13
 text = "营业 90 秒后自动打烊结算"
 text_overrun_behavior = 3
+
+[node name="SaveHint" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.32, 0.46, 0.25, 1)
+theme_override_font_sizes/font_size = 12
+text = "进度每 30 秒自动保存"
+text_overrun_behavior = 3
+
+[node name="SaveButton" type="Button" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+text = "手动保存"
+
+[node name="MainMenuButton" type="Button" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+text = "保存并返回主菜单"

@@ -11,13 +11,14 @@ config_version=5
 [application]
 
 config/name="milky_frog_stead"
-run/main_scene="res://scenes/farm.tscn"
+run/main_scene="uid://du2p8d4mo5qgl"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.svg"
 
 [autoload]
 
 StaffRegistry="*res://scripts/core/staff_registry.gd"
+SaveManager="*res://scripts/core/save_manager.gd"
 
 [display]
 

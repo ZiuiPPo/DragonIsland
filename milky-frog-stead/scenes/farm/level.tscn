@@ -4,6 +4,7 @@
 [ext_resource type="Texture2D" uid="uid://dvanfvqsqyp5a" path="res://assets/tilesets/soil.png" id="2_oi3di"]
 [ext_resource type="Texture2D" uid="uid://c7nteylg3bkpf" path="res://assets/sprites/backgrounds/island_sea_x4_pixel_4032x3624.png" id="5_bg3wq"]
 [ext_resource type="Shader" uid="uid://b04qxauwqygje" path="res://shaders/water_world.gdshader" id="9_sea_shader"]
+[ext_resource type="PackedScene" path="res://scenes/chicken/chicken.tscn" id="9_tfdwu"]
 [ext_resource type="Script" uid="uid://egbig5qmk1iq" path="res://scripts/world/water_canvas.gd" id="10_sea_canvas"]
 [ext_resource type="Script" uid="uid://kru1ymsubdy4" path="res://scripts/world/island_terrain.gd" id="11_island"]
 [ext_resource type="Texture2D" uid="uid://boww5q78e82sm" path="res://assets/textures/noise/grass_noise.png" id="12_grass_noise"]
@@ -886,7 +887,7 @@ z_index = -30
 [node name="IslandImage" type="Sprite2D" parent="." unique_id=1019082087]
 z_index = -28
 texture_filter = 1
-scale = Vector2(2.48, 2.48)
+scale = Vector2(0.62, 0.62)
 texture = ExtResource("5_bg3wq")
 
 [node name="SeaCanvas" type="MeshInstance2D" parent="." unique_id=1842746190]
@@ -903,3 +904,5 @@ depth_range = 4.0
 sdf_range = 22.5
 player_path = NodePath("../../Camera2D")
 canvas_path = NodePath("../SeaCanvas")
+
+[node name="Chicken" parent="." unique_id=1857159985 instance=ExtResource("9_tfdwu")]

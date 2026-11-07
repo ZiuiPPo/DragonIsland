@@ -9,7 +9,7 @@ extends Node
 ##   for member in StaffRegistry.members:
 ##       print(member.display_name, " / ", member.status)
 ##
-## 注意：还没做存档，退出游戏名册就清空（等 SaveManager 接上再补）。
+## 存档：名册由 SaveManager 调用 to_dict() / from_dict() 存读，退出游戏后仍能恢复。
 
 ## 新增了一名员工（参数是那名员工）
 signal staff_added(member: StaffMember)
@@ -47,6 +47,58 @@ func has_name(display_name: String) -> bool:
 
 func count() -> int:
 	return members.size()
+
+
+## 序列化成可写 JSON 的数据（不直接存 Texture2D，存立绘路径，读档时再 load）
+func to_dict() -> Array:
+	var out: Array = []
+	for member in members:
+		out.append({
+			"id": member.id,
+			"display_name": member.display_name,
+			"portrait_path": member.portrait_path,
+			"look": member.look,
+			"status": member.status,
+		})
+	return out
+
+
+## 从存档恢复名册。空数据 / 坏条目会被跳过，不会抛错。
+func from_dict(data: Variant) -> void:
+	members.clear()
+	_next_id = 1
+
+	var rows: Array = []
+	if data is Array:
+		rows = data
+	for row in rows:
+		if typeof(row) != TYPE_DICTIONARY:
+			continue
+		var entry: Dictionary = row
+
+		var display_name := String(entry.get("display_name", "")).strip_edges()
+		if display_name.is_empty():
+			continue
+
+		var id := int(entry.get("id", _next_id))
+		if id <= 0:
+			id = _next_id
+
+		var portrait_path := String(entry.get("portrait_path", ""))
+		var portrait: Texture2D = null
+		if not portrait_path.is_empty() and ResourceLoader.exists(portrait_path):
+			portrait = load(portrait_path) as Texture2D
+
+		var look := String(entry.get("look", ""))
+		if look.is_empty() and not portrait_path.is_empty():
+			look = portrait_path.get_file().get_basename()
+
+		var member := StaffMember.new(id, display_name, portrait, portrait_path, look)
+		member.status = String(entry.get("status", StaffMember.STATUS_PENDING))
+		members.append(member)
+		_next_id = maxi(_next_id, id + 1)
+
+	staff_changed.emit()
 
 
 ## 清空名册（调试用）

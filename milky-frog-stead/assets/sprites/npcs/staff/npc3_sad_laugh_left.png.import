@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dgcevbq5dyt35"
-path="res://.godot/imported/wheat_stages.png-f916d9e0a4e6cd5df59b7a6800e52b20.ctex"
+uid="uid://dcn3q04ufxioa"
+path="res://.godot/imported/npc3_sad_laugh_left.png-608984a3168cfcd8c86881f926803cde.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/tilesets/wheat_stages.png"
-dest_files=["res://.godot/imported/wheat_stages.png-f916d9e0a4e6cd5df59b7a6800e52b20.ctex"]
+source_file="res://assets/sprites/npcs/staff/npc3_sad_laugh_left.png"
+dest_files=["res://.godot/imported/npc3_sad_laugh_left.png-608984a3168cfcd8c86881f926803cde.ctex"]
 
 [params]
 
