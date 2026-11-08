@@ -11,6 +11,7 @@ signal fed(member_id: int, item_id: String, satiety: float)
 
 ## 闲置大笑每秒消耗的体力
 const LAUGH_ENERGY_PER_SECOND: float = 2.0
+const LAUGH_GOLD_PER_SECOND: float = 50.0
 
 
 var _decay_timer: float = 0.0
@@ -25,13 +26,35 @@ func _process(delta: float) -> void:
 	changed.emit()
 
 
-## 只按实际大笑时长扣体力，走动和普通待机不扣这部分体力。
-func consume_laugh_energy(member: StaffMember, seconds: float) -> void:
+## 按真实有效大笑时长同时结算饱腹消耗和收入，多名员工各自累计。
+func settle_laughter(member: StaffMember, seconds: float) -> void:
 	if member == null or member.is_working or not member.is_laughing:
 		return
 	if get_tree().get_first_node_in_group("day_night_cycle") == null:
 		return
-	member.satiety = maxf(0.0, member.satiety - LAUGH_ENERGY_PER_SECOND * maxf(0.0, seconds))
+	# 饱腹即将耗尽时，只奖励实际还能笑的那部分时间。
+	var active_seconds := minf(maxf(0.0, seconds), member.satiety / LAUGH_ENERGY_PER_SECOND)
+	member.satiety = maxf(0.0, member.satiety - LAUGH_ENERGY_PER_SECOND * active_seconds)
+	member.laugh_gold_pending += LAUGH_GOLD_PER_SECOND * active_seconds
+	_payout_laugh_income(member, false)
+
+## 每累计一秒发放 50 金币，结束时补发不足一秒的整数收入；小数保留。
+func _payout_laugh_income(member: StaffMember, final_payment: bool) -> void:
+	if member == null:
+		return
+	var amount := floori(member.laugh_gold_pending + 0.0000001)
+	if not final_payment:
+		amount = floori(float(amount) / LAUGH_GOLD_PER_SECOND) * int(LAUGH_GOLD_PER_SECOND)
+	if amount <= 0:
+		return
+	var wallet := get_tree().get_first_node_in_group("coin_counter")
+	if wallet == null or not wallet.has_method("add_gold"):
+		return
+	member.laugh_gold_pending = maxf(0.0, member.laugh_gold_pending - amount)
+	wallet.call("add_gold", amount)
+
+func finish_laughter(member: StaffMember) -> void:
+	_payout_laugh_income(member, true)
 
 
 ## 喂一个指定食物给某只奶蛙；返回 true = 真的吃掉了。
@@ -40,7 +63,7 @@ func feed(member_id: int, item_id: String, source_slot: int = -1) -> bool:
 	if member == null:
 		return false
 	var item: ItemData = ItemDB.get_item(item_id)
-	if item == null or item.satiety_restore <= 0.0:
+	if item == null or not item.can_eat():
 		EventBus.toast.emit("「%s」不能喂给奶蛙" % ItemDB.display_name(item_id))
 		return false
 	if member.satiety >= StaffMember.MAX_SATIETY - 0.01:
@@ -84,7 +107,7 @@ func best_food() -> String:
 	for raw_id in ItemDB.all_ids():
 		var id := String(raw_id)
 		var item: ItemData = ItemDB.get_item(id)
-		if item == null or item.satiety_restore <= 0.0:
+		if item == null or not item.can_eat():
 			continue
 		if Inventory.get_amount(id) <= 0:
 			continue
@@ -100,7 +123,7 @@ func available_foods() -> Array:
 	for raw_id in ItemDB.all_ids():
 		var id := String(raw_id)
 		var item: ItemData = ItemDB.get_item(id)
-		if item != null and item.satiety_restore > 0.0 and Inventory.get_amount(id) > 0:
+		if item != null and item.can_eat() and Inventory.get_amount(id) > 0:
 			out.append(id)
 	return out
 

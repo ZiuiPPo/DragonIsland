@@ -43,10 +43,3 @@ theme_override_constants/separation = 10
 [node name="Spacer" type="Control" parent="."]
 layout_mode = 2
 size_flags_vertical = 3
-
-[node name="Hint" type="Label" parent="."]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.25, 0.2, 0.12, 0.7)
-theme_override_font_sizes/font_size = 13
-text = "工作状态默认「待定」，分配岗位后才会变"
-text_overrun_behavior = 3

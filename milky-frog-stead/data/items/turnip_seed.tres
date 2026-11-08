@@ -10,6 +10,7 @@ display_name = "萝卜种子"
 icon = ExtResource("2_icon")
 category = 0
 is_ingredient = false
+is_edible = false
 is_seed = true
 is_feed = false
 buy_price = 10

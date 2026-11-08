@@ -46,6 +46,7 @@ func _end_laugh() -> void:
 	_laugh_left = 0.0
 	_laugh_frame_timer = 0.0
 	if member != null:
+		StaffCare.finish_laughter(member)
 		member.is_laughing = false
 	if _audio != null:
 		_audio.stop()
@@ -60,7 +61,7 @@ func blocks_movement(delta: float, facing_right: bool) -> bool:
 	if member.is_working or member.satiety <= 0.0:
 		_end_laugh()
 	elif _laugh_left > 0.0:
-		StaffCare.consume_laugh_energy(member, minf(delta, _laugh_left))
+		StaffCare.settle_laughter(member, minf(delta, _laugh_left))
 		_laugh_left = maxf(0.0, _laugh_left - delta)
 		if _laugh_left <= 0.0 or member.satiety <= 0.0:
 			_end_laugh()
@@ -100,7 +101,7 @@ func _can_drop_data(_pos: Vector2, payload: Variant) -> bool:
 	if not is_instance_valid(source) or not source.valid_payload(payload):
 		return false
 	var item: ItemData = ItemDB.get_item(String(payload.get("item_id", "")))
-	return item != null and item.satiety_restore > 0.0 and Inventory.has(item.id, 1)
+	return item != null and item.can_eat() and Inventory.has(item.id, 1)
 
 func _drop_data(pos: Vector2, payload: Variant) -> void:
 	if _can_drop_data(pos, payload):

@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="RecipeData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/recipe_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "turnip_stew"
+display_name = "歪嘴萝卜锅"
+ingredients = {"turnip": 2, "egg": 1}
+output_id = "turnip_stew"
+output_amount = 2
+description = "锅里的萝卜已经笑歪了嘴。"

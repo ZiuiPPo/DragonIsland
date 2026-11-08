@@ -10,6 +10,7 @@ display_name = "番茄"
 icon = ExtResource("2_icon")
 category = 1
 is_ingredient = true
+is_edible = true
 is_seed = false
 is_feed = false
 buy_price = 0

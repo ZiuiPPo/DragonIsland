@@ -61,6 +61,7 @@ func to_dict() -> Array:
 			"status": member.status,
 			"satiety": member.satiety,
 			"is_working": member.is_working,
+			"laugh_gold_pending": member.laugh_gold_pending,
 		})
 	return out
 
@@ -99,6 +100,7 @@ func from_dict(data: Variant) -> void:
 		member.status = String(entry.get("status", StaffMember.STATUS_PENDING))
 		member.satiety = clampf(float(entry.get("satiety", 60.0)), 0.0, StaffMember.MAX_SATIETY)
 		member.is_working = bool(entry.get("is_working", false))
+		member.laugh_gold_pending = maxf(0.0, float(entry.get("laugh_gold_pending", 0.0)))
 		members.append(member)
 		_next_id = maxi(_next_id, id + 1)
 

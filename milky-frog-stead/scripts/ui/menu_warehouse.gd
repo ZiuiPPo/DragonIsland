@@ -1,5 +1,5 @@
 extends VBoxContainer
-## 仓库菜单：5 列 × 8 行 = 40 格，每格最多 64 个同种物品（item_slot.MAX_STACK）。
+## 仓库菜单：原料与食物分页，各 20 格，共 40 格，每格最多 64 个同种物品（item_slot.MAX_STACK）。
 ##
 ## 数据来源只有两份：Inventory（真实库存）与 ItemDB（物品元数据/图标/堆叠上限）。
 ## 任何产出、消耗、读档后自动刷新（监听 EventBus.inventory_changed / inventory_reloaded）。
@@ -7,12 +7,16 @@ extends VBoxContainer
 
 const COLUMNS: int = 5
 const ROWS: int = 8
+const MATERIAL_SLOT_COUNT: int = 20
 ## 单格堆叠上限（和 item_slot.MAX_STACK 保持一致）
 const STACK_PER_SLOT: int = 64
 
 const SLOT_SCENE: PackedScene = preload("res://scenes/ui/item_slot.tscn")
 
-@onready var _grid: GridContainer = %Grid
+@onready var _material_grid: GridContainer = %MaterialGrid
+@onready var _food_grid: GridContainer = %FoodGrid
+
+var _showing_food: bool = false
 
 var _slots: Array[PanelContainer] = []
 ## 每个格子当前显示的物品：{ item_id: String, amount: int }；空格子是 {}
@@ -20,12 +24,31 @@ var _display: Array[Dictionary] = []
 
 
 func _ready() -> void:
-	_grid.columns = COLUMNS
+	_material_grid.columns = COLUMNS
+	_food_grid.columns = COLUMNS
 	_build_slots()
+	%MaterialButton.pressed.connect(show_materials)
+	%FoodButton.pressed.connect(show_food)
+	show_materials()
 	EventBus.inventory_changed.connect(_on_inventory_changed)
 	EventBus.inventory_reloaded.connect(_refresh)
 	_refresh()
 
+
+## Switching changes visibility only; both pages use the same authoritative inventory.
+func show_materials() -> void:
+	_showing_food = false
+	_update_page()
+
+func show_food() -> void:
+	_showing_food = true
+	_update_page()
+
+func _update_page() -> void:
+	_material_grid.visible = not _showing_food
+	_food_grid.visible = _showing_food
+	%MaterialButton.set_pressed_no_signal(not _showing_food)
+	%FoodButton.set_pressed_no_signal(_showing_food)
 
 # ---------------- 对外接口 ----------------
 
@@ -61,12 +84,20 @@ func _on_inventory_changed(_item_id: String, _amount: int) -> void:
 func _build_slots() -> void:
 	for i in COLUMNS * ROWS:
 		var slot := SLOT_SCENE.instantiate() as PanelContainer
-		_grid.add_child(slot)
+		var grid := _material_grid if i < MATERIAL_SLOT_COUNT else _food_grid
+		grid.add_child(slot)
 		slot.warehouse = self
 		slot.slot_index = i
 		_slots.append(slot)
 
 
+
+## Fixed category ranges also migrate legacy mixed layouts without changing inventory totals.
+func _accepts_item(index: int, item_id: String) -> bool:
+	var item: ItemData = ItemDB.get_item(item_id)
+	if item == null:
+		return false
+	return ItemDB.is_edible(item_id) == (index >= MATERIAL_SLOT_COUNT)
 
 ## Preserve player stack layout; reconcile changes against the authoritative totals.
 func _refresh() -> void:
@@ -76,7 +107,9 @@ func _refresh() -> void:
 	for i in range(layout.size()):
 		var entry: Dictionary = layout[i]
 		var id := String(entry.get("item_id", ""))
-		var take := mini(int(entry.get("amount", 0)), int(remaining.get(id, 0)))
+		var take := maxi(0, mini(int(entry.get("amount", 0)), int(remaining.get(id, 0))))
+		if not _accepts_item(i, id):
+			take = 0
 		take = mini(take, mini(STACK_PER_SLOT, maxi(1, ItemDB.stack_max(id))))
 		layout[i] = {"item_id": id, "amount": take} if take > 0 else {}
 		remaining[id] = int(remaining.get(id, 0)) - take
@@ -88,6 +121,8 @@ func _refresh() -> void:
 		for i in range(layout.size()):
 			if left <= 0:
 				break
+			if not _accepts_item(i, id):
+				continue
 			var entry: Dictionary = layout[i]
 			if not entry.is_empty() and entry.item_id != id:
 				continue
@@ -124,6 +159,8 @@ func valid_payload(payload: Variant) -> bool:
 
 func can_transfer(payload: Variant, target: int) -> bool:
 	if not valid_payload(payload) or target < 0 or target >= _display.size() or target == int(payload.index):
+		return false
+	if not _accepts_item(target, String(payload.item_id)):
 		return false
 	var entry := _display[target]
 	return entry.is_empty() or (entry.item_id == payload.item_id and int(entry.amount) < mini(STACK_PER_SLOT, ItemDB.stack_max(payload.item_id)))

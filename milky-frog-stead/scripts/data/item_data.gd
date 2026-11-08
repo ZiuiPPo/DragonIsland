@@ -6,7 +6,7 @@ extends Resource
 ## 任何系统（种地、养鸡、钓鱼、种树、仓库、喂食、合成）都只用这个 id 字符串。
 ## 改 .tres 即可改数值/图标/堆叠，不要把 id 写死在脚本里。
 
-enum Category { SEED, CROP, ANIMAL, FISH, FRUIT }
+enum Category { SEED, CROP, ANIMAL, FISH, FRUIT, DISH }
 
 @export var id: String = ""
 @export var display_name: String = "物品"
@@ -15,6 +15,8 @@ enum Category { SEED, CROP, ANIMAL, FISH, FRUIT }
 @export var category: Category = Category.CROP
 ## 能否作餐厅食材
 @export var is_ingredient: bool = false
+## 可直接食用：决定仓库分组与喂食资格，与是否能当菜谱原料相互独立。
+@export var is_edible: bool = false
 ## 是否种子（商店/播种用它判断）
 @export var is_seed: bool = false
 ## 是否饲料（养鸡等投喂用）
@@ -26,3 +28,7 @@ enum Category { SEED, CROP, ANIMAL, FISH, FRUIT }
 ## 喂给奶蛙能恢复多少饱腹度；0 = 不能喂（种子/饲料原料）
 @export var satiety_restore: float = 0.0
 @export_multiline var description: String = ""
+
+## 唯一的可直接食用判断。菜谱产出的成品设 is_edible=true 并配置恢复值。
+func can_eat() -> bool:
+	return is_edible and not is_seed and satiety_restore > 0.0

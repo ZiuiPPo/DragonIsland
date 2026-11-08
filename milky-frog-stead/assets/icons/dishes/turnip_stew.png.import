@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b0heeyryjpk0l"
-path="res://.godot/imported/fish.png-71a612a53dc02c896acbfea2a571d90c.ctex"
+uid="uid://bost67bh5vnt5"
+path="res://.godot/imported/turnip_stew.png-30150628035bbd5d3ecf2d5ab4e853c8.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/icons/items/fish.png"
-dest_files=["res://.godot/imported/fish.png-71a612a53dc02c896acbfea2a571d90c.ctex"]
+source_file="res://assets/icons/dishes/turnip_stew.png"
+dest_files=["res://.godot/imported/turnip_stew.png-30150628035bbd5d3ecf2d5ab4e853c8.ctex"]
 
 [params]
 

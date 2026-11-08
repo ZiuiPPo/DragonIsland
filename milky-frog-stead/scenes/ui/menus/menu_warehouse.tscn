@@ -18,7 +18,35 @@ text = "仓库"
 [node name="Line" type="HSeparator" parent="."]
 layout_mode = 2
 
-[node name="Grid" type="GridContainer" parent="."]
+[node name="CategoryButtons" type="HBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="MaterialButton" type="Button" parent="CategoryButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+button_pressed = true
+text = "原料"
+
+[node name="FoodButton" type="Button" parent="CategoryButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+text = "食物"
+
+[node name="MaterialGrid" type="GridContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 0
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 6
+columns = 5
+
+[node name="FoodGrid" type="GridContainer" parent="."]
+visible = false
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 0

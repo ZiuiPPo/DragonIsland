@@ -12,6 +12,8 @@ var satiety: float = 60.0
 var is_working: bool = false
 ## 运行时表现状态，不写入存档。
 var is_laughing: bool = false
+## 尚未结算的大笑收入（含小数），随员工存档以免丢失尾数。
+var laugh_gold_pending: float = 0.0
 
 func is_hungry() -> bool:
 	return satiety < HUNGRY_AT

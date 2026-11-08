@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c0wo8q0qvhjvl"
-path="res://.godot/imported/milk_fruit.png-9559908680aa5bef5daf207aea653d3a.ctex"
+uid="uid://df8jgbo3awos5"
+path="res://.godot/imported/egg_pudding.png-004b1e0164797ea19893b65c648acb72.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/icons/items/milk_fruit.png"
-dest_files=["res://.godot/imported/milk_fruit.png-9559908680aa5bef5daf207aea653d3a.ctex"]
+source_file="res://assets/icons/dishes/egg_pudding.png"
+dest_files=["res://.godot/imported/egg_pudding.png-004b1e0164797ea19893b65c648acb72.ctex"]
 
 [params]
 

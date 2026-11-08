@@ -84,3 +84,8 @@ func ids_by_category(category: int) -> Array:
 
 func count() -> int:
 	return _items.size()
+
+## 食物页与喂食逻辑使用同一规则；可食物也可以作为菜谱原料。
+func is_edible(id: String) -> bool:
+	var item := get_item(id)
+	return item != null and item.can_eat()
