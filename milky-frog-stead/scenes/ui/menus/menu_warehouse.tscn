@@ -34,5 +34,6 @@ size_flags_vertical = 3
 layout_mode = 2
 theme_override_colors/font_color = Color(0.25, 0.2, 0.12, 0.7)
 theme_override_font_sizes/font_size = 13
-text = "40 格 · 每格最多 64 个"
+text = "左拖整堆 · Shift 半堆 · 右拖一个
+拖到同类合堆，空格拆堆；拖奶蛙喂食"
 text_overrun_behavior = 3

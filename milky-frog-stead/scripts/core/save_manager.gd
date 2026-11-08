@@ -12,7 +12,7 @@ extends Node
 ##   3. 农场场景调用 begin_session() 启用数据变化时的自动存档；
 ##   4. 离开农场 / 手动保存 / 关闭窗口时调用 save_game()。
 
-const SAVE_PATH: String = "user://save.json"
+var SAVE_PATH: String = "user://save.drag-care-test.json" if OS.get_cmdline_user_args().has("--test-save") else "user://save.json"
 const SAVE_VERSION: int = 1
 
 ## 新游戏默认金币，和 scenes/farm.tscn 里 CoinCounter.start_gold 保持一致
@@ -52,6 +52,7 @@ func _ready() -> void:
 	# 招聘 / 清空名册都触发自动存档；主菜单阶段 _session_active 为 false，不会误写。
 	if not StaffRegistry.staff_changed.is_connected(request_autosave):
 		StaffRegistry.staff_changed.connect(request_autosave)
+	EventBus.inventory_changed.connect(_on_inventory_changed)
 
 
 # ---------------- 主菜单用 ----------------
@@ -85,6 +86,7 @@ func get_save_summary() -> Dictionary:
 func start_new_game() -> void:
 	_pending_clock = {}
 	StaffRegistry.clear()
+	Inventory.reset_to_starting()
 	_pending_gold = DEFAULT_GOLD
 	_last_gold = DEFAULT_GOLD
 	_session_active = false
@@ -101,6 +103,7 @@ func load_save() -> bool:
 
 	_pending_clock = data.get("clock", {}) if data.get("clock", {}) is Dictionary else {}
 	StaffRegistry.from_dict(data.get("staff", []))
+	_restore_inventory(data)
 	_pending_gold = int(data.get("gold", DEFAULT_GOLD))
 	_last_gold = _pending_gold
 	_session_active = false
@@ -173,6 +176,8 @@ func save_game() -> bool:
 		"gold": _read_gold_from_scene(),
 		"staff": StaffRegistry.to_dict(),
 		"clock": _read_clock_from_scene(),
+		"inventory": Inventory.to_dict(),
+		"warehouse_slots": Inventory.warehouse_slots,
 	}
 
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
@@ -237,3 +242,18 @@ func _read_clock_from_scene() -> Dictionary:
 	if clock != null:
 		return clock.get_clock_state()
 	return {"day": 1, "hour": 9.0}
+
+func _on_inventory_changed(_item_id: String, _amount: int) -> void:
+	request_autosave()
+
+func _restore_inventory(data: Dictionary) -> void:
+	if data.get("inventory") is Dictionary:
+		Inventory.from_dict(data.inventory)
+	else:
+		Inventory.reset_to_starting()
+	Inventory.warehouse_slots.clear()
+	var saved: Variant = data.get("warehouse_slots", [])
+	if saved is Array:
+		for entry in saved.slice(0, 40):
+			Inventory.warehouse_slots.append(entry.duplicate() if entry is Dictionary else {})
+	EventBus.inventory_reloaded.emit()

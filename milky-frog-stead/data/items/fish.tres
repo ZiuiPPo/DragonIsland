@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/item_data.gd" id="1_item"]
+[ext_resource type="Texture2D" path="res://assets/icons/items/fish.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_item")
+id = "fish"
+display_name = "鱼"
+icon = ExtResource("2_icon")
+category = 3
+is_ingredient = true
+is_seed = false
+is_feed = false
+buy_price = 0
+sell_price = 25
+satiety_restore = 25.0
+stack_max = 64
+description = "钓点产出，餐厅食材。"

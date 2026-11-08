@@ -21,7 +21,7 @@ var _spawned: Dictionary = {}
 
 func _ready() -> void:
 	StaffRegistry.staff_changed.connect(_sync)
-	_sync()
+	_sync.call_deferred()
 
 
 ## 名册和场景对齐：缺的人生出来，多出来的人收走，改名的人更新头顶文字
@@ -33,7 +33,7 @@ func _sync() -> void:
 		alive[member.id] = true
 		var existing: Variant = _spawned.get(member.id)
 		if existing != null and is_instance_valid(existing):
-			existing.call("set_display_name", member.display_name)
+			existing.call("update_member", member)
 			continue
 		_spawn(member)
 
