@@ -23,7 +23,10 @@ func _apply_pending_gold() -> void:
 	if counter == null or not counter.has_method("set_gold"):
 		push_warning("农场里找不到 CoinCounter，读档金币没有应用")
 		return
-	counter.call("set_gold", gold, false)
+	if counter.has_method("restore_data"):
+		counter.call("restore_data", {"gold": gold})
+	else:
+		counter.call("set_gold", gold, false)
 
 
 ## 金币变化时通知 SaveManager 延迟自动存档。

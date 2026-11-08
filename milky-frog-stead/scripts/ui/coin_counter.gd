@@ -71,6 +71,22 @@ func _process(delta: float) -> void:
 
 # ---------------- 对外接口 ----------------
 
+## 业务系统统一存档接口：只导出金币数值
+func get_save_data() -> Dictionary:
+	return {"gold": real_gold}
+
+
+## 业务系统统一读档接口。data 可以是 {"gold": 123}，也兼容直接传数字。
+func restore_data(data: Variant) -> void:
+	var value := 0
+	if data is Dictionary:
+		var dict: Dictionary = data
+		value = int(dict.get("gold", 0))
+	elif typeof(data) == TYPE_INT or typeof(data) == TYPE_FLOAT:
+		value = int(data)
+	set_gold(value, false)
+
+
 ## 设置余额。animate = false 时数字直接跳过去，不滚动。
 func set_gold(value: int, animate: bool = true) -> void:
 	value = maxi(value, 0)
