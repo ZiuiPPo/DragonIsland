@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c3qkgdvdnshvw"
-path="res://.godot/imported/stump.png-c4d50f1d5e49e8919064df7e8645bafe.ctex"
+uid="uid://dvfg4dyd236fb"
+path="res://.godot/imported/wheat-character-pixel-v2.png-c6ab4128268ecf7eb79c2f60ba59984a.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/plants/stump.png"
-dest_files=["res://.godot/imported/stump.png-c4d50f1d5e49e8919064df7e8645bafe.ctex"]
+source_file="res://assets/icons/items/wheat-character-pixel-v2.png"
+dest_files=["res://.godot/imported/wheat-character-pixel-v2.png-c6ab4128268ecf7eb79c2f60ba59984a.ctex"]
 
 [params]
 
