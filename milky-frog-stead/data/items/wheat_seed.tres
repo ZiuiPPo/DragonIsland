@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/item_data.gd" id="1_item"]
+[ext_resource type="Texture2D" path="res://assets/icons/items/wheat_seed.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_item")
+id = "wheat_seed"
+display_name = "小麦种子"
+icon = ExtResource("2_icon")
+category = 0
+is_ingredient = false
+is_edible = false
+is_seed = true
+is_feed = true
+buy_price = 20
+sell_price = 0
+stack_max = 64
+description = "种在地里，2 天后成熟；小麦也是鸡饲料。"

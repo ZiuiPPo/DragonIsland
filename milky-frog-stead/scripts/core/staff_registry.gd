@@ -59,6 +59,9 @@ func to_dict() -> Array:
 			"portrait_path": member.portrait_path,
 			"look": member.look,
 			"status": member.status,
+			"satiety": member.satiety,
+			"is_working": member.is_working,
+			"laugh_gold_pending": member.laugh_gold_pending,
 		})
 	return out
 
@@ -95,6 +98,9 @@ func from_dict(data: Variant) -> void:
 
 		var member := StaffMember.new(id, display_name, portrait, portrait_path, look)
 		member.status = String(entry.get("status", StaffMember.STATUS_PENDING))
+		member.satiety = clampf(float(entry.get("satiety", 60.0)), 0.0, StaffMember.MAX_SATIETY)
+		member.is_working = bool(entry.get("is_working", false))
+		member.laugh_gold_pending = maxf(0.0, float(entry.get("laugh_gold_pending", 0.0)))
 		members.append(member)
 		_next_id = maxi(_next_id, id + 1)
 
@@ -106,3 +112,13 @@ func clear() -> void:
 	members.clear()
 	_next_id = 1
 	staff_changed.emit()
+
+## 岗位系统统一通过此接口切换工作状态；0 体力时有效状态仍为悲伤。
+func set_working(member_id: int, working: bool) -> bool:
+	for member in members:
+		if member.id == member_id:
+			member.is_working = working
+			member.status = "工作中" if working else StaffMember.STATUS_PENDING
+			staff_changed.emit()
+			return true
+	return false
