@@ -57,12 +57,6 @@ static func frames_for(look: String) -> SpriteFrames:
 	_add_anim(frames, &"move_left", left, MOVE_FIRST, MOVE_LAST, MOVE_FPS)
 	_add_anim(frames, &"move_right", right, MOVE_FIRST, MOVE_LAST, MOVE_FPS)
 
-	for direction in ["left", "right"]:
-		var path := "%s/%s_sad_laugh_%s.png" % [SHEET_DIR, look, direction]
-		if ResourceLoader.exists(path):
-			var emotions := load(path) as Texture2D
-			_add_anim(frames, StringName("sad_" + direction), emotions, 0, 0, 1.0)
-			_add_anim(frames, StringName("laugh_" + direction), emotions, 1, 7, 7.0)
 	_cache[look] = frames
 	return frames
 
