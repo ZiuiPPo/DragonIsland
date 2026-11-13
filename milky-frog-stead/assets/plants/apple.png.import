@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b185b0isy705i"
-path="res://.godot/imported/lettuce.png-da8e609d50b0cf80a8b9d7f340d77a47.ctex"
+uid="uid://sq8eecgf1dkq"
+path="res://.godot/imported/apple.png-8c753ef2d87e262b68c05c391cfb4504.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/icons/items/lettuce.png"
-dest_files=["res://.godot/imported/lettuce.png-da8e609d50b0cf80a8b9d7f340d77a47.ctex"]
+source_file="res://assets/plants/apple.png"
+dest_files=["res://.godot/imported/apple.png-8c753ef2d87e262b68c05c391cfb4504.ctex"]
 
 [params]
 

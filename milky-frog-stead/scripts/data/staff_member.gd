@@ -14,9 +14,6 @@ const STATUS_PENDING: String = STATUS_IDLE
 
 ## 可分配的岗位
 const JOB_OPTIONS: Array[String] = ["农夫", "厨师", "服务员", "收银员", "清洁工"]
-## 饱腹度（master 的喂食 / 大笑系统）
-const MAX_SATIETY: float = 100.0
-const HUNGRY_AT: float = 30.0
 
 ## 名册内的唯一编号（从 1 开始）
 var id: int = 0
@@ -48,12 +45,6 @@ var remaining_hours: float = 0.0
 var stamina: float = 100.0
 ## 心情 0-100
 var mood: float = 70.0
-## 饱腹度 0-100
-var satiety: float = 60.0
-## 运行时大笑表现，不写入存档
-var is_laughing: bool = false
-## 尚未结算的大笑收入（含小数），随员工存档以免丢失尾数
-var laugh_gold_pending: float = 0.0
 
 
 func _init(p_id: int = 0, p_name: String = "", p_portrait: Texture2D = null, p_portrait_path: String = "", p_look: String = "", p_job: String = "", p_attendance: String = "出勤") -> void:
@@ -76,10 +67,6 @@ func is_idle() -> bool:
 
 func is_resting() -> bool:
 	return status == STATUS_RESTING
-
-
-func is_hungry() -> bool:
-	return satiety < HUNGRY_AT
 
 
 ## 把旧存档里的「待定」等状态归一成三种当前状态

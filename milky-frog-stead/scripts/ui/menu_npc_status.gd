@@ -51,7 +51,6 @@ const TASK_OPTIONS: Array = [
 @onready var _task_button: Button = %TaskButton
 @onready var _rest_button: Button = %RestButton
 @onready var _fire_button: Button = %FireButton
-@onready var _feed_button: Button = %FeedButton
 @onready var _detail_hint: Label = %DetailHint
 
 @onready var _job_popup: PopupMenu = %JobPopup
@@ -79,7 +78,6 @@ func _ready() -> void:
 	_task_button.pressed.connect(_on_task_pressed)
 	_rest_button.pressed.connect(_on_rest_pressed)
 	_fire_button.pressed.connect(_on_fire_pressed)
-	_feed_button.pressed.connect(_on_feed_pressed)
 
 	StaffRegistry.staff_changed.connect(_on_staff_changed)
 	StaffRegistry.staff_removed.connect(_on_staff_removed)
@@ -287,7 +285,6 @@ func _refresh_detail() -> void:
 		["剩余工时", "%.1f 小时" % member.remaining_hours],
 		["体力", "%d / 100" % int(round(member.stamina))],
 		["心情", "%d / 100" % int(round(member.mood))],
-		["饱腹度", "%d / 100" % int(round(member.satiety))],
 	])
 
 	Inventory.ensure_staff_container(member.id)
@@ -295,7 +292,6 @@ func _refresh_detail() -> void:
 	_equip_slot.call("set_default_tooltip", "%s 的装备（只能放种子）" % member.display_name)
 
 	_rest_button.disabled = member.is_resting()
-	_feed_button.disabled = member.satiety >= StaffMember.MAX_SATIETY or StaffCare.best_food().is_empty()
 	_detail_hint.text = "状态修改会立即写回名册并自动存档"
 
 
@@ -403,18 +399,6 @@ func _on_rest_pressed() -> void:
 		return
 	if StaffRegistry.force_rest(_selected_id):
 		_detail_hint.text = "已强制休息，体力和心情有所恢复"
-
-
-func _on_feed_pressed() -> void:
-	if _selected_id == 0:
-		return
-	var member := StaffRegistry.get_member(_selected_id)
-	if member == null:
-		return
-	if StaffCare.feed_with_available(_selected_id):
-		_detail_hint.text = "%s 吃饱了一些" % member.display_name
-	else:
-		_detail_hint.text = "没有能喂的食物，或已经吃饱了"
 
 
 func _on_fire_pressed() -> void:

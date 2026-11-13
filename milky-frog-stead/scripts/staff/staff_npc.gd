@@ -23,13 +23,10 @@ const Looks := preload("res://scripts/staff/staff_looks.gd")
 @onready var _name_label: Label = $NameLabel
 
 var _display_name: String = ""
-var _member: StaffMember
-var _care_view: Control
 
 
 ## 填入名册里的员工资料并摆好出生位置。在 add_child 之前调用。
 func configure(member: StaffMember, spawn_position: Vector2) -> void:
-	_member = member
 	look = member.look if not member.look.is_empty() else _look_from_portrait(member.portrait_path)
 	_display_name = member.display_name
 	position = spawn_position
@@ -47,9 +44,6 @@ func _ready() -> void:
 
 	# 帧要先装好，Npc._ready() 里的 _check_animations() 才能通过
 	super._ready()
-	_care_view = preload("res://scripts/staff/staff_care_view.gd").new()
-	add_child(_care_view)
-	_care_view.bind_member(_member)
 
 
 ## 改名字（名册改名后由 Spawner 调）
@@ -68,23 +62,3 @@ func _apply_name() -> void:
 ## 兼容旧数据：没存 look 时，从立绘路径推（res://assets/icons/recruit/npc3.png → npc3）
 func _look_from_portrait(portrait_path: String) -> String:
 	return portrait_path.get_file().get_basename() if not portrait_path.is_empty() else "npc1"
-
-func _physics_process(delta: float) -> void:
-	if _care_view != null and _care_view.blocks_movement(delta, _facing_right):
-		velocity = Vector2.ZERO
-		locomotion.stop()
-		return
-	super._physics_process(delta)
-
-## 名册读档后可能创建新的 StaffMember 实例，更新绑定而非保留旧引用。
-func update_member(member: StaffMember) -> void:
-	_member = member
-	set_display_name(member.display_name)
-	var next_look := member.look if not member.look.is_empty() else _look_from_portrait(member.portrait_path)
-	if next_look != look:
-		look = next_look
-		var frames := Looks.frames_for(look)
-		if frames != null:
-			animated_sprite_2d.sprite_frames = frames
-	if _care_view != null:
-		_care_view.bind_member(member)
