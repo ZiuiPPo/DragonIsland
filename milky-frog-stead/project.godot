@@ -17,13 +17,10 @@ config/icon="res://icon.svg"
 
 [autoload]
 
-EventBus="*res://autoload/event_bus.gd"
-ItemDB="*res://autoload/item_db.gd"
 Inventory="*res://scripts/core/inventory.gd"
 StaffRegistry="*res://scripts/core/staff_registry.gd"
 PlotRegistry="*res://scripts/core/plot_registry.gd"
 SaveManager="*res://scripts/core/save_manager.gd"
-StaffCare="*res://autoload/staff_care.gd"
 DragManager="*res://scripts/ui/drag_manager.gd"
 
 [display]

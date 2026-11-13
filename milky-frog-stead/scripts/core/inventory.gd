@@ -30,17 +30,6 @@ const DEFAULT_WAREHOUSE_SLOTS: int = 40
 const DEFAULT_BACKPACK_SLOTS: int = 5
 const DEFAULT_SHELF_SLOTS: int = 5
 
-## 上游 master 的存档迁移 / 新游戏初始物资；并入后保留料理与喂食功能可直接体验。
-const LEGACY_ITEM_IDS: Dictionary = {"fruit_salad": "veggie_salad", "milk_pudding": "egg_pudding"}
-const REMOVED_ITEM_IDS: Array[String] = ["fish", "milk_fruit", "fish_bun"]
-const STARTING_ITEMS: Dictionary = {
-	"wheat": 12,
-	"egg": 6,
-	"tomato": 8,
-	"turnip_seed": 4,
-	"wheat_seed": 4,
-}
-
 ## 物品定义：id -> 显示名 / 图标路径 / 标签。
 ## seed 标签决定员工装备栏能不能接收；warehouse / shelf 不限制。
 const ITEM_DEFS: Dictionary = {
@@ -52,11 +41,6 @@ const ITEM_DEFS: Dictionary = {
 
 ## container_id -> 容器字典（唯一真实数据源）
 var containers: Dictionary = {}
-
-## 上游仓库/料理界面使用的仓库布局视图，直接指向真实仓库格子
-var warehouse_slots: Array:
-	get:
-		return _slots_of(WAREHOUSE_ID)
 
 var _icon_cache: Dictionary = {}
 
@@ -132,8 +116,6 @@ func is_empty(container_id: String = "") -> bool:
 
 
 func get_display_name(item_id: String) -> String:
-	if ItemDB.has_item(item_id):
-		return ItemDB.display_name(item_id)
 	var def: Dictionary = ITEM_DEFS.get(item_id, {})
 	return String(def.get("name", item_id))
 
@@ -141,38 +123,19 @@ func get_display_name(item_id: String) -> String:
 func get_icon(item_id: String) -> Texture2D:
 	if _icon_cache.has(item_id):
 		return _icon_cache[item_id]
-	var texture: Texture2D = ItemDB.icon(item_id)
-	if texture == null:
-		var def: Dictionary = ITEM_DEFS.get(item_id, {})
-		var path := String(def.get("icon", ""))
-		if path.is_empty() or not ResourceLoader.exists(path):
-			return null
-		texture = load(path) as Texture2D
+	var def: Dictionary = ITEM_DEFS.get(item_id, {})
+	var path := String(def.get("icon", ""))
+	if path.is_empty() or not ResourceLoader.exists(path):
+		return null
+	var texture := load(path) as Texture2D
 	_icon_cache[item_id] = texture
 	return texture
 
 
 func get_item_tags(item_id: String) -> Array:
-	var tags: Array = []
-	var item: ItemData = ItemDB.get_item(item_id)
-	if item != null:
-		if item.is_seed:
-			tags.append("seed")
-		if item.is_edible:
-			tags.append("food")
-		if item.is_ingredient:
-			tags.append("ingredient")
-		if item.category == ItemData.Category.SEED and not tags.has("seed"):
-			tags.append("seed")
-		if item.category == ItemData.Category.DISH and not tags.has("food"):
-			tags.append("food")
 	var def: Dictionary = ITEM_DEFS.get(item_id, {})
-	var fallback: Variant = def.get("tags", [])
-	if fallback is Array:
-		for tag in fallback:
-			if not tags.has(tag):
-				tags.append(tag)
-	return tags
+	var tags: Variant = def.get("tags", [])
+	return (tags as Array).duplicate() if tags is Array else []
 
 
 ## 目标容器是否允许这个物品
@@ -254,138 +217,7 @@ func _create_default_containers() -> void:
 
 func clear() -> void:
 	_create_default_containers()
-	_notify_reloaded()
-
-
-## 新游戏初始物资：沿用 master 的开局库存，让料理 / 喂食功能可直接体验。
-func reset_to_starting() -> void:
-	_create_default_containers()
-	for item_id in STARTING_ITEMS:
-		var amount := int(STARTING_ITEMS[item_id])
-		if amount <= 0:
-			continue
-		var remaining := _fill_existing_stacks(WAREHOUSE_ID, String(item_id), amount)
-		_fill_empty_slots(WAREHOUSE_ID, String(item_id), remaining)
-	_notify_reloaded()
-
-
-# ---------------- 上游 master 兼容接口 ----------------
-
-func add(item_id: String, amount: int = 1) -> void:
-	add_item(item_id, amount, WAREHOUSE_ID)
-
-
-func consume(item_id: String, amount: int = 1) -> bool:
-	if amount <= 0:
-		return true
-	return remove_item_any(item_id, amount)
-
-
-func has(item_id: String, amount: int = 1) -> bool:
-	return get_amount(item_id) >= amount
-
-
-## 从所有容器按仓库 → 背包 → 货架 → 员工装备顺序扣除
-func remove_item_any(item_id: String, amount: int = 1) -> bool:
-	if amount <= 0:
-		return true
-	if get_amount(item_id) < amount:
-		return false
-	var remaining := amount
-	var order: Array[String] = [WAREHOUSE_ID, BACKPACK_ID, SHELF_ID]
-	for cid in get_container_ids():
-		if String(cid).begins_with(STAFF_PREFIX):
-			order.append(String(cid))
-	for cid in order:
-		if remaining <= 0:
-			break
-		remaining -= _remove_item_partial(cid, item_id, remaining)
-	if remaining > 0:
-		return false
-	_notify_changed(item_id)
-	return true
-
-
-func _remove_item_partial(container_id: String, item_id: String, amount: int) -> int:
-	var removed := 0
-	var slots := _slots_of(container_id)
-	for i in range(slots.size() - 1, -1, -1):
-		if removed >= amount:
-			break
-		var slot: Dictionary = slots[i]
-		if String(slot.get("item_id", "")) != item_id:
-			continue
-		var take := mini(amount - removed, int(slot.get("amount", 0)))
-		slot["amount"] = int(slot.get("amount", 0)) - take
-		removed += take
-		if int(slot["amount"]) <= 0:
-			slot["item_id"] = ""
-			slot["amount"] = 0
-	return removed
-
-
-## 料理：原料/产出都按整份校验；产出空间按仓库剩余格子粗校验。
-func can_exchange(costs: Dictionary, outputs: Dictionary) -> bool:
-	if costs.is_empty() or outputs.is_empty():
-		return false
-	for id in costs:
-		if not ItemDB.has_item(String(id)) or int(costs[id]) <= 0:
-			return false
-		if get_amount(String(id)) < int(costs[id]):
-			return false
-	for id in outputs:
-		if not ItemDB.has_item(String(id)) or int(outputs[id]) <= 0:
-			return false
-	var needed_slots := 0
-	for id in outputs:
-		needed_slots += ceili(float(outputs[id]) / float(maxi(1, mini(64, ItemDB.stack_max(String(id))))))
-	return needed_slots <= _free_warehouse_slots() + _existing_capacity(String(outputs.keys()[0]))
-
-
-func exchange(costs: Dictionary, outputs: Dictionary) -> bool:
-	if not can_exchange(costs, outputs):
-		return false
-	for id in costs:
-		remove_item_any(String(id), int(costs[id]))
-	for id in outputs:
-		add_item(String(id), int(outputs[id]), WAREHOUSE_ID)
-	_notify_reloaded()
-	SaveManager.request_autosave()
-	return true
-
-
-func _free_warehouse_slots() -> int:
-	var free := 0
-	for slot in _slots_of(WAREHOUSE_ID):
-		if int(slot.get("amount", 0)) <= 0:
-			free += 1
-	return free
-
-
-func _existing_capacity(item_id: String) -> int:
-	var capacity := 0
-	for slot in _slots_of(WAREHOUSE_ID):
-		if String(slot.get("item_id", "")) == item_id:
-			capacity += maxi(0, 64 - int(slot.get("amount", 0)))
-	return capacity
-
-
-func _notify_changed(item_id: String = "") -> void:
 	inventory_changed.emit()
-	if item_id.is_empty():
-		EventBus.inventory_reloaded.emit()
-	else:
-		EventBus.inventory_changed.emit(item_id, get_amount(item_id))
-
-
-func _notify_reloaded() -> void:
-	inventory_changed.emit()
-	EventBus.inventory_reloaded.emit()
-
-
-## 给外部视图（料理台仓库）修改布局后主动通知主 UI
-func notify_inventory_changed() -> void:
-	_notify_reloaded()
 
 
 # ---------------- 修改（所有 UI 修改都走这里） ----------------
@@ -407,7 +239,7 @@ func add_item(item_id: String, amount: int = 1, container_id: String = WAREHOUSE
 	remaining = _fill_existing_stacks(container_id, item_id, remaining)
 	remaining = _fill_empty_slots(container_id, item_id, remaining)
 	if remaining < amount:
-		_notify_changed(item_id)
+		inventory_changed.emit()
 	return remaining
 
 
@@ -433,7 +265,7 @@ func remove_item(item_id: String, amount: int = 1, container_id: String = WAREHO
 		if remaining <= 0:
 			break
 	if remaining <= 0:
-		_notify_changed(item_id)
+		inventory_changed.emit()
 		return true
 	return false
 
@@ -449,7 +281,7 @@ func set_item(item_id: String, amount: int) -> void:
 	if amount > 0:
 		add_item(item_id, amount, WAREHOUSE_ID)
 	else:
-		_notify_changed(item_id)
+		inventory_changed.emit()
 
 
 # ---------------- 拖拽核心：校验 + 移动 ----------------
@@ -509,7 +341,6 @@ func move_item(from_container: String, from_slot: int, to_container: String, to_
 	var source: Dictionary = _slots_of(from_container)[from_slot]
 	var target: Dictionary = _slots_of(to_container)[to_slot]
 	var mode := String(check.get("mode", "move"))
-	var item_id := String(source.get("item_id", ""))
 
 	if mode == "swap":
 		var source_copy: Dictionary = source.duplicate(true)
@@ -519,6 +350,7 @@ func move_item(from_container: String, from_slot: int, to_container: String, to_
 		target["amount"] = int(source_copy.get("amount", 0))
 	else:
 		var moved := int(check.get("amount", 0))
+		var item_id := String(source.get("item_id", ""))
 		source["amount"] = int(source.get("amount", 0)) - moved
 		if int(source["amount"]) <= 0:
 			source["item_id"] = ""
@@ -528,7 +360,7 @@ func move_item(from_container: String, from_slot: int, to_container: String, to_
 			target["amount"] = 0
 		target["amount"] = int(target.get("amount", 0)) + moved
 
-	_notify_changed(item_id if not item_id.is_empty() else "")
+	inventory_changed.emit()
 	return {"ok": true, "mode": mode, "moved": int(check.get("amount", 0))}
 
 
@@ -575,7 +407,7 @@ func return_container_to_warehouse(container_id: String) -> void:
 			slot["item_id"] = ""
 			slot["amount"] = 0
 	if changed:
-		_notify_reloaded()
+		inventory_changed.emit()
 
 
 # ---------------- 存档 ----------------
@@ -615,38 +447,15 @@ func restore_data(data: Variant) -> void:
 	ensure_container(WAREHOUSE_ID, DEFAULT_WAREHOUSE_SLOTS, "仓库")
 	ensure_container(BACKPACK_ID, DEFAULT_BACKPACK_SLOTS, "背包")
 	ensure_container(SHELF_ID, DEFAULT_SHELF_SLOTS, "货架")
-	_migrate_legacy_item_ids()
-	_notify_reloaded()
+	inventory_changed.emit()
 
 
-## 上游仓库/料理界面要的是「仓库这一页」的扁平总量；完整容器数据由 get_save_data() 输出。
 func to_dict() -> Dictionary:
-	var totals: Dictionary = {}
-	for slot in _slots_of(WAREHOUSE_ID):
-		var item_id := String(slot.get("item_id", ""))
-		var amount := int(slot.get("amount", 0))
-		if item_id.is_empty() or amount <= 0:
-			continue
-		totals[item_id] = int(totals.get(item_id, 0)) + amount
-	return totals
+	return get_save_data()
 
 
 func from_dict(data: Variant) -> void:
 	restore_data(data)
-
-
-func _migrate_legacy_item_ids() -> void:
-	for container_id in get_container_ids():
-		for slot in _slots_of(container_id):
-			var item_id := String(slot.get("item_id", ""))
-			if item_id.is_empty():
-				continue
-			var canonical := String(LEGACY_ITEM_IDS.get(item_id, item_id))
-			if REMOVED_ITEM_IDS.has(canonical):
-				slot["item_id"] = ""
-				slot["amount"] = 0
-			elif canonical != item_id:
-				slot["item_id"] = canonical
 
 
 # ---------------- 内部 ----------------

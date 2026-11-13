@@ -171,12 +171,6 @@ func _touch(member: StaffMember) -> void:
 	staff_changed.emit()
 
 
-## 给 StaffCare 等外部系统用：字段被直接修改后通知 UI / 存档
-func notify_member_changed(member: StaffMember) -> void:
-	if member != null:
-		_touch(member)
-
-
 # ---------------- 存档 ----------------
 
 ## 业务系统统一存档接口：员工数组，只存纯数据
@@ -207,8 +201,6 @@ func to_dict() -> Array:
 			"remaining_hours": member.remaining_hours,
 			"stamina": member.stamina,
 			"mood": member.mood,
-			"satiety": member.satiety,
-			"laugh_gold_pending": member.laugh_gold_pending,
 		})
 	return out
 
@@ -253,17 +245,12 @@ func from_dict(data: Variant) -> void:
 			String(entry.get("attendance", "出勤"))
 		)
 		member.status = StaffMember.normalize_status(String(entry.get("status", StaffMember.STATUS_IDLE)))
-		# 旧 master 存档用 is_working 布尔值；并入后映射到当前状态
-		if bool(entry.get("is_working", false)):
-			member.status = StaffMember.STATUS_WORKING
 		member.proficiency = clampi(int(entry.get("proficiency", 1)), 1, 5)
 		member.salary = maxi(0, int(entry.get("salary", 100)))
 		member.current_task = String(entry.get("current_task", ""))
 		member.remaining_hours = maxf(0.0, float(entry.get("remaining_hours", 0.0)))
 		member.stamina = clampf(float(entry.get("stamina", 100.0)), 0.0, 100.0)
 		member.mood = clampf(float(entry.get("mood", 70.0)), 0.0, 100.0)
-		member.satiety = clampf(float(entry.get("satiety", 60.0)), 0.0, StaffMember.MAX_SATIETY)
-		member.laugh_gold_pending = maxf(0.0, float(entry.get("laugh_gold_pending", 0.0)))
 
 		# 旧存档只有 attendance，没有当前状态时做一次温和归一
 		if String(entry.get("status", "")).strip_edges() == "待定":
