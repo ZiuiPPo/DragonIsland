@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=3 format=3]
+[ext_resource type="Script" path="res://scripts/data/item_data.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/icons/dishes/tomato_egg.png" id="2"]
+[resource]
+script = ExtResource("1")
+id = "tomato_egg"
+display_name = "疯笑番茄蛋"
+icon = ExtResource("2")
+category = 5
+is_ingredient = false
+is_edible = true
+is_seed = false
+satiety_restore = 55.0
+stack_max = 64
+description = "番茄和蛋一起笑出了锅。"

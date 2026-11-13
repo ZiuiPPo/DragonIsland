@@ -238,7 +238,7 @@ func start_new_game(slot: int) -> bool:
 ## 把所有业务系统恢复到新游戏默认值。
 ## 这里只重置内存数据；农场/DayNightCycle 会在场景 _ready 时消费 pending 值。
 func reset_runtime_systems() -> void:
-	Inventory.clear()                 # 库存为空
+	Inventory.reset_to_starting()     # 开局物资（上游料理/喂食需要）
 	StaffRegistry.clear()             # 员工名册为空
 	PlotRegistry.clear()              # 地块状态为空
 	current_farm_name = DEFAULT_FARM_NAME

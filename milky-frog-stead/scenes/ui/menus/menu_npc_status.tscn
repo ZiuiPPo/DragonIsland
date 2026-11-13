@@ -223,6 +223,12 @@ custom_minimum_size = Vector2(0, 32)
 layout_mode = 2
 text = "解雇"
 
+[node name="FeedButton" type="Button" parent="DetailView/ActionGrid"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 32)
+layout_mode = 2
+text = "喂食"
+
 [node name="DetailHint" type="Label" parent="DetailView"]
 unique_name_in_owner = true
 layout_mode = 2
