@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="RecipeData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/recipe_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "egg_bread"
+display_name = "瞪眼蛋包"
+ingredients = {"wheat": 2, "egg": 1}
+output_id = "egg_bread"
+output_amount = 2
+description = "看起来在瞪你，其实只是在等你吃。"

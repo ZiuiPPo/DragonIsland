@@ -27,6 +27,8 @@ const ANIM_TIME: float = 0.18       ## 要"快速弹出"就调小这个值
 @onready var _menu_holder: MarginContainer = %MenuHolder
 @onready var _icon_column: VBoxContainer = %IconColumn
 
+var _workbench: Control
+
 var _menus: Dictionary = {}                  ## SidebarIconButton -> Control（懒加载缓存）
 var _open_button: SidebarIconButton = null
 var _slide_tween: Tween = null
@@ -36,6 +38,7 @@ var _fade_tween: Tween = null
 
 func _ready() -> void:
 	_collapse_immediately()
+	get_node("Layout/IconColumn/RecipesButton").pressed.connect(_open_workbench)
 	for child in _icon_column.get_children():
 		if child is SidebarIconButton:
 			child.toggled.connect(_on_icon_toggled.bind(child))
@@ -176,3 +179,14 @@ func _collapse_immediately() -> void:
 	_set_panel_x(MENU_WIDTH)
 	_set_menu_height(0.0)
 	_menu_panel.visible = false
+
+func _open_workbench() -> void:
+	close()
+	if not is_instance_valid(_workbench):
+		var layer := CanvasLayer.new()
+		layer.name = "CookingLayer"
+		layer.layer = 50
+		add_child(layer)
+		_workbench = preload("res://scripts/ui/crafting_window.gd").new()
+		layer.add_child(_workbench)
+	_workbench.open()
