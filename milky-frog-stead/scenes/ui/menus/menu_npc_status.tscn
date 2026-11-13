@@ -6,7 +6,7 @@
 layout_mode = 3
 anchors_preset = 0
 offset_right = 260.0
-offset_bottom = 600.0
+offset_bottom = 340.0
 theme_override_constants/separation = 10
 script = ExtResource("1_script")
 
@@ -18,28 +18,7 @@ text = "员工状态"
 [node name="Line" type="HSeparator" parent="."]
 layout_mode = 2
 
-[node name="ListView" type="VBoxContainer" parent="."]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_constants/separation = 8
-
-[node name="Filters" type="HBoxContainer" parent="ListView"]
-layout_mode = 2
-theme_override_constants/separation = 6
-
-[node name="StateFilter" type="OptionButton" parent="ListView/Filters"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 30)
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="JobFilter" type="OptionButton" parent="ListView/Filters"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 30)
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="EmptyLabel" type="Label" parent="ListView"]
+[node name="EmptyLabel" type="Label" parent="."]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
@@ -48,196 +27,19 @@ theme_override_font_sizes/font_size = 14
 text = "还没有员工，去「招聘」抽一个吧"
 text_overrun_behavior = 3
 
-[node name="Scroll" type="ScrollContainer" parent="ListView"]
+[node name="Scroll" type="ScrollContainer" parent="."]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 300)
+custom_minimum_size = Vector2(0, 240)
 layout_mode = 2
 size_flags_vertical = 0
 horizontal_scroll_mode = 0
 
-[node name="List" type="VBoxContainer" parent="ListView/Scroll"]
+[node name="List" type="VBoxContainer" parent="Scroll"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 8
-
-[node name="ListHint" type="Label" parent="ListView"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.25, 0.2, 0.12, 0.7)
-theme_override_font_sizes/font_size = 12
-text = "共 0 人"
-text_overrun_behavior = 3
-
-[node name="DetailView" type="VBoxContainer" parent="."]
-unique_name_in_owner = true
-visible = false
-layout_mode = 2
-theme_override_constants/separation = 8
-
-[node name="BackButton" type="Button" parent="DetailView"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 30)
-layout_mode = 2
-text = "← 返回名册"
-
-[node name="DetailScroll" type="ScrollContainer" parent="DetailView"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 500)
-layout_mode = 2
-size_flags_vertical = 0
-horizontal_scroll_mode = 0
-
-[node name="DetailContent" type="VBoxContainer" parent="DetailView/DetailScroll"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 8
-
-[node name="Header" type="HBoxContainer" parent="DetailView/DetailScroll/DetailContent"]
-layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="DetailPortrait" type="TextureRect" parent="DetailView/DetailScroll/DetailContent/Header"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(64, 64)
+[node name="Spacer" type="Control" parent="."]
 layout_mode = 2
-expand_mode = 1
-stretch_mode = 5
-
-[node name="HeaderInfo" type="VBoxContainer" parent="DetailView/DetailScroll/DetailContent/Header"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 2
-
-[node name="DetailName" type="Label" parent="DetailView/DetailScroll/DetailContent/Header/HeaderInfo"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_font_sizes/font_size = 19
-text = "员工"
-text_overrun_behavior = 3
-
-[node name="DetailId" type="Label" parent="DetailView/DetailScroll/DetailContent/Header/HeaderInfo"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.2, 0.15, 0.08, 0.8)
-theme_override_font_sizes/font_size = 12
-text = "#0"
-
-[node name="DetailJob" type="Label" parent="DetailView/DetailScroll/DetailContent/Header/HeaderInfo"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.72, 0.33, 0.2, 1)
-theme_override_font_sizes/font_size = 13
-text = "未分配"
-
-[node name="Line2" type="HSeparator" parent="DetailView/DetailScroll/DetailContent"]
-layout_mode = 2
-
-[node name="BasicTitle" type="Label" parent="DetailView/DetailScroll/DetailContent"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 14
-text = "基础信息"
-
-[node name="BasicGrid" type="GridContainer" parent="DetailView/DetailScroll/DetailContent"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_constants/h_separation = 8
-theme_override_constants/v_separation = 4
-columns = 2
-
-[node name="StatusTitle" type="Label" parent="DetailView/DetailScroll/DetailContent"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 14
-text = "状态信息"
-
-[node name="StatusGrid" type="GridContainer" parent="DetailView/DetailScroll/DetailContent"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_constants/h_separation = 8
-theme_override_constants/v_separation = 4
-columns = 2
-
-[node name="ItemsTitle" type="Label" parent="DetailView/DetailScroll/DetailContent"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 14
-text = "物品栏"
-
-[node name="ItemsHint" type="Label" parent="DetailView/DetailScroll/DetailContent"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.25, 0.2, 0.12, 0.65)
-theme_override_font_sizes/font_size = 11
-text = "拖背包物品到员工携带（只能放种子）"
-text_overrun_behavior = 3
-
-[node name="BackpackRow" type="HBoxContainer" parent="DetailView/DetailScroll/DetailContent"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_constants/separation = 4
-
-[node name="EquipTitle" type="Label" parent="DetailView/DetailScroll/DetailContent"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.25, 0.2, 0.12, 0.75)
-theme_override_font_sizes/font_size = 12
-text = "员工携带"
-
-[node name="EquipHolder" type="HBoxContainer" parent="DetailView/DetailScroll/DetailContent"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_constants/separation = 6
-
-[node name="ActionsTitle" type="Label" parent="DetailView"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_font_sizes/font_size = 14
-text = "操作"
-
-[node name="ActionGrid" type="GridContainer" parent="DetailView"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_constants/h_separation = 6
-theme_override_constants/v_separation = 6
-columns = 2
-
-[node name="JobButton" type="Button" parent="DetailView/ActionGrid"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 32)
-layout_mode = 2
-text = "分配岗位"
-
-[node name="TaskButton" type="Button" parent="DetailView/ActionGrid"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 32)
-layout_mode = 2
-text = "指派工作"
-
-[node name="RestButton" type="Button" parent="DetailView/ActionGrid"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 32)
-layout_mode = 2
-text = "强制休息"
-
-[node name="FireButton" type="Button" parent="DetailView/ActionGrid"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 32)
-layout_mode = 2
-text = "解雇"
-
-[node name="DetailHint" type="Label" parent="DetailView"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.25, 0.2, 0.12, 0.7)
-theme_override_font_sizes/font_size = 12
-text = ""
-autowrap_mode = 2
-
-[node name="JobPopup" type="PopupMenu" parent="."]
-unique_name_in_owner = true
-
-[node name="TaskPopup" type="PopupMenu" parent="."]
-unique_name_in_owner = true
-
-[node name="FireDialog" type="ConfirmationDialog" parent="."]
-unique_name_in_owner = true
-title = "解雇员工"
-size = Vector2i(320, 120)
+size_flags_vertical = 3

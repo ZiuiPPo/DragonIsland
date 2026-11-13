@@ -1,23 +1,19 @@
 extends Node
 ## 主菜单路由器。
 ##
-## 主菜单 / 存档界面 / 设置界面都作为子节点挂在 scene_handler 下面，
-## 它们只负责显示和发信号；新游戏初始化、读档和场景跳转集中在这里。
+## 主菜单 / 存档界面 / 设置界面都以子节点的形式挂在 scene_handler 下面，
+## 这样它们只负责显示和发信号，真正的场景跳转全部集中在这里。
 ##
 ## 场景连接：
-##   主菜单「开始新游戏」 -> 存档界面(新建模式) -> 选槽位 -> scenes/farm.tscn
-##   主菜单「读取存档」   -> 存档界面(读取模式) -> 读取/新建/覆盖 -> scenes/farm.tscn
-##   主菜单「设置」       -> 设置界面
-##   主菜单「退出」       -> 退出
-##   农场「保存并返回主菜单」 -> scenes/main/scene_handler.tscn
+##   主菜单「新游戏」 -> 确认覆盖 -> scenes/farm.tscn
+##   主菜单「存档」   -> 存档界面 -> 读取 -> scenes/farm.tscn
+##   主菜单「游戏设置」-> 设置界面
+##   主菜单「退出游戏」-> 退出
+##   农场「保存并返回主菜单」-> scenes/main/scene_handler.tscn
 
 const MAIN_MENU_SCENE: PackedScene = preload("res://scenes/ui/main_menu.tscn")
 const SAVE_MENU_SCENE: PackedScene = preload("res://scenes/ui/save_menu.tscn")
 const SETTINGS_MENU_SCENE: PackedScene = preload("res://scenes/ui/settings_menu.tscn")
-
-## 与 scripts/ui/save_menu.gd 的 MODE_LOAD / MODE_NEW_GAME 保持一致
-const SAVE_MODE_LOAD: int = 0
-const SAVE_MODE_NEW_GAME: int = 1
 
 var _main_menu: Control = null
 var _save_menu: Control = null
@@ -35,29 +31,27 @@ func _show_main_menu() -> void:
 	_main_menu = _show_screen(MAIN_MENU_SCENE) as Control
 	if _main_menu == null:
 		return
-	_main_menu.connect("new_game_pressed", _on_new_game_pressed)
-	_main_menu.connect("load_pressed", _on_load_pressed)
-	_main_menu.connect("settings_pressed", _on_settings_pressed)
-	_main_menu.connect("exit_pressed", _on_exit_pressed)
+	_main_menu.new_game_pressed.connect(_on_new_game_pressed)
+	_main_menu.save_pressed.connect(_on_save_pressed)
+	_main_menu.settings_pressed.connect(_on_settings_pressed)
+	_main_menu.exit_pressed.connect(_on_exit_pressed)
 	print("✅ 主菜单已加载")
 
 
-func _show_save_menu(mode: int) -> void:
+func _show_save_menu() -> void:
 	_save_menu = _show_screen(SAVE_MENU_SCENE) as Control
 	if _save_menu == null:
 		return
-	_save_menu.call("set_mode", mode)
-	_save_menu.connect("back_pressed", _show_main_menu)
-	_save_menu.connect("load_requested", _on_load_requested)
-	_save_menu.connect("new_game_requested", _on_new_game_requested)
-	print("✅ 存档界面已加载（模式 %d）" % mode)
+	_save_menu.back_pressed.connect(_show_main_menu)
+	_save_menu.load_requested.connect(_on_load_requested)
+	print("✅ 存档界面已加载")
 
 
 func _show_settings_menu() -> void:
 	_settings_menu = _show_screen(SETTINGS_MENU_SCENE) as Control
 	if _settings_menu == null:
 		return
-	_settings_menu.connect("back_pressed", _show_main_menu)
+	_settings_menu.back_pressed.connect(_show_main_menu)
 	print("✅ 设置界面已加载")
 
 
@@ -82,11 +76,20 @@ func _show_screen(scene: PackedScene) -> Control:
 # ---------------- 主菜单按钮 ----------------
 
 func _on_new_game_pressed() -> void:
-	_show_save_menu(SAVE_MODE_NEW_GAME)
+	if SaveManager.has_save():
+		_confirm_overwrite_save()
+	else:
+		_start_new_game()
 
 
-func _on_load_pressed() -> void:
-	_show_save_menu(SAVE_MODE_LOAD)
+func _start_new_game() -> void:
+	print("🟢 新游戏，跳转农场")
+	SaveManager.start_new_game()
+	_go_to_game()
+
+
+func _on_save_pressed() -> void:
+	_show_save_menu()
 
 
 func _on_settings_pressed() -> void:
@@ -100,26 +103,26 @@ func _on_exit_pressed() -> void:
 
 # ---------------- 存档界面回调 ----------------
 
-func _on_load_requested(slot: int) -> void:
-	if not SaveManager.load_game(slot):
-		_save_message("存档 %d 读取失败，文件可能损坏或版本不兼容" % slot)
-		return
-	print("🟢 读取 %d 号存档，跳转农场" % slot)
+func _on_load_requested() -> void:
+	print("🟢 读取存档，跳转农场")
 	_go_to_game()
 
 
-func _on_new_game_requested(slot: int) -> void:
-	if not SaveManager.start_new_game(slot):
-		_save_message("无法在 %d 号槽位开始新游戏" % slot)
-		return
-	print("🟢 在 %d 号槽位开始新游戏，跳转农场" % slot)
-	_go_to_game()
+# ---------------- 内部 ----------------
 
-
-func _save_message(text: String) -> void:
-	if _save_menu != null and is_instance_valid(_save_menu):
-		_save_menu.call("refresh_saves")
-		_save_menu.call("show_message", text)
+## 已有存档时，新游戏必须先确认，避免误点覆盖进度。
+func _confirm_overwrite_save() -> void:
+	var dialog := ConfirmationDialog.new()
+	dialog.name = "NewGameConfirm"
+	dialog.title = "开始新游戏"
+	dialog.dialog_text = "已有存档，开始新游戏会覆盖原来的进度。\n确定要重新开始吗？"
+	dialog.ok_button_text = "重新开始"
+	dialog.cancel_button_text = "取消"
+	dialog.confirmed.connect(_start_new_game)
+	dialog.confirmed.connect(dialog.queue_free)
+	dialog.canceled.connect(dialog.queue_free)
+	add_child(dialog)
+	dialog.popup_centered()
 
 
 func _go_to_game() -> void:

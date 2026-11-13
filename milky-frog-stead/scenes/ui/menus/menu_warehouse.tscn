@@ -7,7 +7,7 @@ layout_mode = 3
 anchors_preset = 0
 offset_right = 256.0
 offset_bottom = 220.0
-theme_override_constants/separation = 10
+theme_override_constants/separation = 12
 script = ExtResource("1_script")
 
 [node name="Title" type="Label" parent="."]
@@ -18,57 +18,41 @@ text = "仓库"
 [node name="Line" type="HSeparator" parent="."]
 layout_mode = 2
 
-[node name="SlotScroll" type="ScrollContainer" parent="."]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 300)
+[node name="CategoryButtons" type="HBoxContainer" parent="."]
 layout_mode = 2
-size_flags_vertical = 0
-horizontal_scroll_mode = 0
+theme_override_constants/separation = 8
 
-[node name="Grid" type="GridContainer" parent="SlotScroll"]
+[node name="MaterialButton" type="Button" parent="CategoryButtons"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/h_separation = 4
-theme_override_constants/v_separation = 6
-columns = 5
+toggle_mode = true
+button_pressed = true
+text = "原料"
 
-[node name="BackpackTitle" type="Label" parent="."]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.25, 0.2, 0.12, 0.75)
-theme_override_font_sizes/font_size = 14
-text = "背包"
-
-[node name="BackpackRow" type="HBoxContainer" parent="."]
+[node name="FoodButton" type="Button" parent="CategoryButtons"]
 unique_name_in_owner = true
 layout_mode = 2
-size_flags_vertical = 0
-theme_override_constants/separation = 6
+size_flags_horizontal = 3
+toggle_mode = true
+text = "食物"
 
-[node name="ShelfTitle" type="Label" parent="."]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.25, 0.2, 0.12, 0.75)
-theme_override_font_sizes/font_size = 14
-text = "货架"
-
-[node name="ShelfRow" type="HBoxContainer" parent="."]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_vertical = 0
-theme_override_constants/separation = 6
-
-[node name="EquipTitle" type="Label" parent="."]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.25, 0.2, 0.12, 0.75)
-theme_override_font_sizes/font_size = 14
-text = "员工装备（只能放种子）"
-
-[node name="EquipFlow" type="HFlowContainer" parent="."]
+[node name="MaterialGrid" type="GridContainer" parent="."]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 0
 theme_override_constants/h_separation = 6
 theme_override_constants/v_separation = 6
+columns = 5
+
+[node name="FoodGrid" type="GridContainer" parent="."]
+visible = false
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 0
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 6
+columns = 5
 
 [node name="Grow" type="Control" parent="."]
 layout_mode = 2
@@ -76,8 +60,8 @@ size_flags_vertical = 3
 
 [node name="Hint" type="Label" parent="."]
 layout_mode = 2
-tooltip_text = "按住物品拖到仓库、货架或员工装备栏"
 theme_override_colors/font_color = Color(0.25, 0.2, 0.12, 0.7)
-theme_override_font_sizes/font_size = 12
-text = "仓库 0/40 · 背包 0/5 · 货架 0/5"
+theme_override_font_sizes/font_size = 13
+text = "左拖整堆 · Shift 半堆 · 右拖一个
+拖到同类合堆，空格拆堆；拖奶蛙喂食"
 text_overrun_behavior = 3

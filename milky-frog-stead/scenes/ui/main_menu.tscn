@@ -126,7 +126,7 @@ theme_override_styles/normal = SubResource("StyleBoxFlat_btn_normal")
 theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_pressed")
 theme_override_styles/focus = SubResource("StyleBoxFlat_btn_focus")
-text = "开始新游戏"
+text = "新游戏"
 
 [node name="Save" type="Button" parent="VBoxContainer"]
 unique_name_in_owner = true
@@ -140,7 +140,7 @@ theme_override_styles/normal = SubResource("StyleBoxFlat_btn_normal")
 theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_pressed")
 theme_override_styles/focus = SubResource("StyleBoxFlat_btn_focus")
-text = "读取存档"
+text = "存档"
 
 [node name="GameSet" type="Button" parent="VBoxContainer"]
 custom_minimum_size = Vector2(0, 54)
@@ -153,7 +153,7 @@ theme_override_styles/normal = SubResource("StyleBoxFlat_btn_normal")
 theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_pressed")
 theme_override_styles/focus = SubResource("StyleBoxFlat_btn_focus")
-text = "设置"
+text = "游戏设置"
 
 [node name="GameExit" type="Button" parent="VBoxContainer"]
 custom_minimum_size = Vector2(0, 54)
@@ -166,7 +166,7 @@ theme_override_styles/normal = SubResource("StyleBoxFlat_btn_normal")
 theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_pressed")
 theme_override_styles/focus = SubResource("StyleBoxFlat_btn_focus")
-text = "退出"
+text = "退出游戏"
 
 [node name="SaveState" type="Label" parent="VBoxContainer"]
 unique_name_in_owner = true
@@ -195,6 +195,6 @@ text = "奶龙种地"
 horizontal_alignment = 1
 
 [connection signal="pressed" from="VBoxContainer/NewGame" to="." method="_on_new_game_pressed"]
-[connection signal="pressed" from="VBoxContainer/Save" to="." method="_on_load_pressed"]
+[connection signal="pressed" from="VBoxContainer/Save" to="." method="_on_save_pressed"]
 [connection signal="pressed" from="VBoxContainer/GameSet" to="." method="_on_settings_pressed"]
 [connection signal="pressed" from="VBoxContainer/GameExit" to="." method="_on_exit_pressed"]

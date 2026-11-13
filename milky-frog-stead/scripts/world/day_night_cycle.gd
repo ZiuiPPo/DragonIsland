@@ -14,7 +14,8 @@ func _ready() -> void:
 		add_to_group("day_night_cycle")
 		var saved: Dictionary = SaveManager.consume_pending_clock()
 		if not saved.is_empty():
-			restore_data(saved)
+			day = maxi(1, int(saved.get("day", 1)))
+			hour = fposmod(float(saved.get("hour", 9.0)), 24.0)
 	var water := get_node_or_null(water_path) as MeshInstance2D
 	if water and water.material is ShaderMaterial:
 		_water_material = water.material as ShaderMaterial
@@ -62,17 +63,3 @@ func advance_phase() -> void:
 
 func get_clock_state() -> Dictionary:
 	return {"day": day, "hour": hour}
-
-
-# ---------------- 存档接口 ----------------
-
-## 业务系统统一存档接口：只导出天数和时刻
-func get_save_data() -> Dictionary:
-	return get_clock_state()
-
-
-## 业务系统统一读档接口
-func restore_data(data: Dictionary) -> void:
-	day = maxi(1, int(data.get("day", 1)))
-	hour = fposmod(float(data.get("hour", 9.0)), 24.0)
-	_apply_lighting()

@@ -4,13 +4,13 @@
 [ext_resource type="Script" uid="uid://8krdjkjplqma" path="res://scripts/ui/sidebar_icon_button.gd" id="2_icon_script"]
 [ext_resource type="PackedScene" path="res://scenes/ui/menus/menu_npc_status.tscn" id="3_menu_npc"]
 [ext_resource type="PackedScene" path="res://scenes/ui/menus/menu_clock.tscn" id="4_menu_clock"]
+[ext_resource type="Texture2D" uid="uid://bikfvqo60glc8" path="res://assets/icons/gameplay_character/building.png" id="icon_building"]
 [ext_resource type="Texture2D" uid="uid://wco8i5nowkqq" path="res://assets/icons/recruit/npc1.png" id="4_qcjxn"]
 [ext_resource type="PackedScene" path="res://scenes/ui/menus/menu_warehouse.tscn" id="5_menu_warehouse"]
 [ext_resource type="PackedScene" path="res://scenes/ui/menus/menu_recruit.tscn" id="6_menu_recruit"]
 [ext_resource type="Texture2D" uid="uid://bymita4x2dx4l" path="res://assets/icons/hud/clock.png" id="7_icon_clock"]
 [ext_resource type="Texture2D" uid="uid://dpgojn0y2fg68" path="res://assets/icons/gameplay_character/warehouse.png" id="8_icon_warehouse"]
 [ext_resource type="Texture2D" uid="uid://b3760umr66egn" path="res://assets/icons/gameplay_character/recruit.png" id="9_icon_recruit"]
-[ext_resource type="Texture2D" uid="uid://bikfvqo60glc8" path="res://assets/icons/gameplay_character/building.png" id="icon_building"]
 [ext_resource type="Texture2D" uid="uid://be5ahen7a68pi" path="res://assets/icons/gameplay_character/recipes.png" id="icon_recipes"]
 [ext_resource type="Texture2D" uid="uid://6jfg358rg340" path="res://assets/icons/gameplay_character/shop.png" id="icon_shop"]
 
@@ -276,13 +276,16 @@ expand_mode = 1
 stretch_mode = 5
 
 [node name="RecipesButton" type="Button" parent="Layout/IconColumn" unique_id=1409553764]
-self_modulate = Color(1, 1, 1, 0.65)
 custom_minimum_size = Vector2(72, 72)
 layout_mode = 2
-tooltip_text = "菜谱（尚未开放）"
+tooltip_text = "菜谱 / 料理台"
 focus_mode = 0
-theme_override_styles/disabled = SubResource("StyleBoxFlat_icon_normal")
-disabled = true
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_icon_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_icon_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_icon_hover")
+theme_override_styles/hover_pressed = SubResource("StyleBoxFlat_icon_pressed")
+disabled = false
 
 [node name="Icon" type="TextureRect" parent="Layout/IconColumn/RecipesButton" unique_id=156105244]
 layout_mode = 1
