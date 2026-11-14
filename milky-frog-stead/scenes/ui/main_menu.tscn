@@ -126,7 +126,7 @@ theme_override_styles/normal = SubResource("StyleBoxFlat_btn_normal")
 theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_pressed")
 theme_override_styles/focus = SubResource("StyleBoxFlat_btn_focus")
-text = "新游戏"
+text = "开始新游戏"
 
 [node name="Save" type="Button" parent="VBoxContainer"]
 unique_name_in_owner = true
@@ -140,7 +140,7 @@ theme_override_styles/normal = SubResource("StyleBoxFlat_btn_normal")
 theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_pressed")
 theme_override_styles/focus = SubResource("StyleBoxFlat_btn_focus")
-text = "存档"
+text = "读取存档"
 
 [node name="GameSet" type="Button" parent="VBoxContainer"]
 custom_minimum_size = Vector2(0, 54)
@@ -153,7 +153,7 @@ theme_override_styles/normal = SubResource("StyleBoxFlat_btn_normal")
 theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_pressed")
 theme_override_styles/focus = SubResource("StyleBoxFlat_btn_focus")
-text = "游戏设置"
+text = "设置"
 
 [node name="GameExit" type="Button" parent="VBoxContainer"]
 custom_minimum_size = Vector2(0, 54)
@@ -166,7 +166,7 @@ theme_override_styles/normal = SubResource("StyleBoxFlat_btn_normal")
 theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_pressed")
 theme_override_styles/focus = SubResource("StyleBoxFlat_btn_focus")
-text = "退出游戏"
+text = "退出"
 
 [node name="SaveState" type="Label" parent="VBoxContainer"]
 unique_name_in_owner = true
