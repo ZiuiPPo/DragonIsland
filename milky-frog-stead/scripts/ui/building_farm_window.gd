@@ -18,7 +18,6 @@ const GRID_WIDTH: float = PLOT_COLUMNS * PLOT_SIZE.x + (PLOT_COLUMNS - 1) * PLOT
 const GRID_HEIGHT: float = PLOT_ROWS * PLOT_SIZE.y + (PLOT_ROWS - 1) * PLOT_GAP
 const GRASS_TEXTURE := preload("res://assets/tilesets/grass.png")
 const SOIL_TEXTURE := preload("res://assets/tilesets/soil.png")
-const GRASS_TUFT_TEXTURE := preload("res://assets/sprites/decorations/grass_tuft.png")
 const PLANT_HEIGHT_RATIO: float = 0.68
 const UI_REFRESH_INTERVAL: float = 0.12
 const GRID_MARGIN: float = 12.0
@@ -42,12 +41,10 @@ var _inventory_label: Label
 var _hover_plot: int = -1
 var _live_accum: float = 0.0
 var _anim_time: float = 0.0
-var _decor_built: bool = false
 var _grass_atlas: AtlasTexture
 var _soil_atlas: AtlasTexture
 var _frame_bbox_cache: Dictionary = {}
 var _crop_scale_cache: Dictionary = {}
-var _rng := RandomNumberGenerator.new()
 
 
 # ---------------- 基类接口 ----------------
@@ -63,7 +60,6 @@ func page_hint() -> String:
 func _build_body(parent: VBoxContainer) -> void:
 	if FarmState.PLOT_COUNT != PLOT_COUNT:
 		push_warning("[农田页] 页面按 %d 块地绘制，但 FarmState 是 %d 块" % [PLOT_COUNT, FarmState.PLOT_COUNT])
-	_rng.seed = 20261115
 	_grass_atlas = UI.tile_texture(GRASS_TEXTURE, 44)
 	_soil_atlas = UI.tile_texture(SOIL_TEXTURE, 44)
 	_plant_sprites.resize(PLOT_COUNT)
@@ -324,37 +320,6 @@ func _layout_field() -> void:
 			column * (PLOT_SIZE.x + PLOT_GAP),
 			row * (PLOT_SIZE.y + PLOT_GAP))
 		button.size = PLOT_SIZE
-	if not _decor_built:
-		_decor_built = true
-		_build_decorations(view_size)
-
-
-## 田地边缘撒一点草簇，避免"一块菜地贴在一片纯色草皮上"的空旷感。
-func _build_decorations(view_size: Vector2) -> void:
-	var grid_rect := Rect2(
-		_grid_root.position - Vector2(10, 10),
-		Vector2(GRID_WIDTH + 20.0, GRID_HEIGHT + 20.0))
-	var placed := 0
-	var attempts := 0
-	while placed < 14 and attempts < 200:
-		attempts += 1
-		var pos := Vector2(
-			_rng.randf_range(16.0, view_size.x - 16.0),
-			_rng.randf_range(16.0, view_size.y - 16.0))
-		if grid_rect.has_point(pos):
-			continue
-		var tuft := Sprite2D.new()
-		tuft.texture = GRASS_TUFT_TEXTURE
-		tuft.hframes = 4
-		tuft.frame = _rng.randi_range(0, 3)
-		tuft.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		tuft.position = pos
-		var factor := _rng.randf_range(1.8, 3.0)
-		tuft.scale = Vector2(factor, factor)
-		tuft.modulate = Color(0.86, 0.96, 0.72, 0.95)
-		tuft.z_index = 0
-		_field_view.add_child(tuft)
-		placed += 1
 
 
 # ---------------- 交互 ----------------
