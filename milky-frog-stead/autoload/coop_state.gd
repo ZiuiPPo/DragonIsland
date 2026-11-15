@@ -4,11 +4,13 @@ extends Node
 ## 负责「养鸡系统」的全部数值模拟，不负责画界面：
 ##   · 3 只鸡的饥饿值随游戏时间上涨；
 ##   · 玩家往食盆投喂小麦 → 鸡进食 → 饥饿下降、进入产蛋计时；
-##   · 鸡不太饿时会产蛋，蛋先落在地上，需要玩家点一下才收进仓库（统一走 FarmOutput）；
+##   · 鸡不太饿时产蛋计时会走完，但**不会凭空生成蛋**：
+##     鸡舍界面会先让鸡走到巢箱、蹲下，再由界面调用 lay_egg()，蛋才出现；
 ##   · 食盆有上限，地上同时最多 6 枚蛋，避免无限堆积。
 ##
-## 界面打开时由界面驱动「走到食盆再吃」；界面关闭后本节点自动进食，
-## 保证关掉建筑时蛋也在慢慢产出。
+## 只有鸡舍界面打开（ui_active=true）时本节点才推进时间：
+## 关掉页面后鸡、饥饿、产蛋计时全部暂停，避免不在场时「凭空多蛋」。
+## 界面负责让鸡走到食盆/巢箱，数据层只做数值与存档。
 
 signal changed
 ## 新蛋落地（参数：地上现有蛋数）
@@ -17,6 +19,8 @@ signal egg_laid(on_ground: int)
 signal egg_collected(total_collected: int)
 ## 某只鸡吃了一份饲料（参数：鸡的序号）
 signal chicken_ate(index: int)
+## 某只鸡在巢箱下完了一枚蛋（参数：鸡的序号）
+signal chicken_laid(index: int)
 
 const CHICKEN_NAMES: Array[String] = ["小黄", "小白", "小花"]
 const TROUGH_MAX: int = 9
@@ -41,7 +45,7 @@ var trough_stock: int = 0
 var eggs_on_ground: int = 0
 var total_eggs: int = 0
 var total_collected: int = 0
-## 鸡舍窗口打开时为 true：由界面决定哪只鸡去吃；关闭时自动进食。
+## 鸡舍窗口打开时为 true：只有这时才推进饥饿/产蛋计时，并由界面驱动鸡去食槽/巢箱。
 var ui_active: bool = false
 
 var _rng := RandomNumberGenerator.new()
@@ -64,22 +68,18 @@ func _process(delta: float) -> void:
 func tick(delta: float) -> void:
 	if delta <= 0.0 or chickens.is_empty():
 		return
+	# 鸡舍页面没开就暂停：蛋必须由玩家看着鸡走到巢箱才出现
+	if not ui_active:
+		return
 	# 切场景 / 掉帧回来时不要一次跳太多
 	delta = minf(delta, 0.5)
 	for i in range(chickens.size()):
 		var chicken: Dictionary = chickens[i]
 		chicken["hunger"] = minf(HUNGER_MAX, float(chicken["hunger"]) + HUNGER_RATE * delta)
-		if not ui_active and float(chicken["hunger"]) >= HUNGRY_AT and trough_stock > 0:
-			_eat_one(i)
 		if float(chicken["hunger"]) >= LAY_HUNGER_LIMIT:
 			continue
 		chicken["lay_timer"] = maxf(0.0, float(chicken["lay_timer"]) - delta)
-		if float(chicken["lay_timer"]) <= 0.0 and eggs_on_ground < MAX_EGGS_ON_GROUND:
-			eggs_on_ground += 1
-			total_eggs += 1
-			chicken["lay_timer"] = _rng.randf_range(LAY_INTERVAL_MIN, LAY_INTERVAL_MAX)
-			egg_laid.emit(eggs_on_ground)
-			changed.emit()
+		# 注意：这里只把计时器归零，不生成蛋；界面让鸡走到巢箱后会调 lay_egg()
 
 
 # ---------------- 投喂 ----------------
@@ -101,7 +101,7 @@ func fill_trough(amount: int = 3) -> int:
 	return want
 
 
-## 让第 index 只鸡吃一份饲料（界面在鸡走到食盆时调用；窗口关闭时自动调用）。
+## 让第 index 只鸡吃一份饲料（界面在鸡走到食槽时调用）。
 func feed_chicken(index: int) -> bool:
 	return _eat_one(index)
 
@@ -132,6 +132,35 @@ func chicken_name(index: int) -> String:
 	if index < 0 or index >= chickens.size():
 		return ""
 	return String(chickens[index]["name"])
+
+
+# ---------------- 下蛋（由鸡舍界面驱动） ----------------
+
+## 这只鸡是否已经「憋到巢箱下蛋」：计时走完、不太饿、巢箱还有空位。
+## 只有界面看到 true 后让鸡走过去，走到再调用 lay_egg() 才会真的多一枚蛋。
+func lay_ready(index: int) -> bool:
+	if index < 0 or index >= chickens.size():
+		return false
+	if eggs_on_ground >= MAX_EGGS_ON_GROUND:
+		return false
+	if float(chickens[index]["hunger"]) >= LAY_HUNGER_LIMIT:
+		return false
+	return float(chickens[index]["lay_timer"]) <= 0.0
+
+
+## 在巢箱下蛋（界面在鸡走到巢箱、蹲下动画结束后调用）。
+## 返回实际新增的蛋数：0 或 1。调用后重置这只鸡的下一轮产蛋计时。
+func lay_egg(index: int) -> int:
+	if not lay_ready(index):
+		return 0
+	eggs_on_ground += 1
+	total_eggs += 1
+	var chicken: Dictionary = chickens[index]
+	chicken["lay_timer"] = _rng.randf_range(LAY_INTERVAL_MIN, LAY_INTERVAL_MAX)
+	egg_laid.emit(eggs_on_ground)
+	chicken_laid.emit(index)
+	changed.emit()
+	return 1
 
 
 # ---------------- 收蛋 ----------------

@@ -3,7 +3,7 @@ extends "res://scripts/ui/building_window_base.gd"
 ##
 ## 场景不再是一块绿色网格 + 几张图标，而是「木墙 + 木地板」的室内：
 ##   上方 34% 是钉着 3 个稻草巢箱的木板墙，下方 66% 是鸡活动 / 食槽所在的木地板；
-##   鸡蛋只出现在巢箱里，必须点巢箱里的蛋才收得进仓库。
+##   鸡蛋只出现在巢箱里，且必须由小鸡自己走到巢箱、蹲下之后才出现（不会凭空生成）。
 ## 数值仍全部在 CoopState autoload 里，本页只画场景 + 把点击转成数据操作。
 ## 窗口打开时 CoopState.ui_active = true，由本页 _process 驱动鸡走到食槽进食；
 ## 窗口关闭后交还数据层自动进食，保证关掉建筑界面时蛋也在慢慢产出。
@@ -105,6 +105,10 @@ const MODE_WANDER: int = 0
 const MODE_SEEK: int = 1
 const MODE_EAT: int = 2
 const MODE_IDLE: int = 3
+const MODE_TO_NEST: int = 4
+const MODE_LAY: int = 5
+## 走到巢箱后蹲下到蛋出现的时间
+const LAY_SECONDS: float = 1.8
 
 
 ## 一只鸡的界面状态：把「画面上怎么走」和 CoopState 里的数值解耦。
@@ -118,6 +122,7 @@ class ChickenView:
 	var facing: int = 1
 	var mode: int = 0
 	var timer: float = 0.0
+	var nest_index: int = -1
 
 
 var _arena: Control = null
@@ -127,6 +132,9 @@ var _egg_buttons: Array[Button] = []
 var _chicken_frames: SpriteFrames = null
 var _chickens: Array = []
 var _chickens_initialized: bool = false
+## 同一时间只让一只鸡去下蛋，避免两只鸡抢一个巢箱 / 蛋位顺序错乱
+var _laying_chicken: int = -1
+var _laying_nest: int = -1
 
 # 右侧状态面板
 var _chicken_name_labels: Array[Label] = []
@@ -900,7 +908,12 @@ func _chicken_display_name(index: int) -> String:
 
 
 func _chicken_state_text(index: int) -> String:
-	if index < _chickens.size() and int(_chickens[index].mode) == MODE_EAT:
+	var mode := int(_chickens[index].mode) if index >= 0 and index < _chickens.size() else -1
+	if mode == MODE_LAY:
+		return "正在下蛋…"
+	if mode == MODE_TO_NEST:
+		return "去巢箱"
+	if mode == MODE_EAT:
 		return "正在吃"
 	if CoopState.lay_blocked(index):
 		return "太饿停产"
@@ -910,8 +923,11 @@ func _chicken_state_text(index: int) -> String:
 
 
 func _chicken_state_color(index: int) -> Color:
-	if index < _chickens.size() and int(_chickens[index].mode) == MODE_EAT:
+	var mode := int(_chickens[index].mode) if index >= 0 and index < _chickens.size() else -1
+	if mode == MODE_EAT:
 		return UI.GREEN_DARK
+	if mode == MODE_LAY or mode == MODE_TO_NEST:
+		return UI.GOLD_DARK
 	if CoopState.lay_blocked(index):
 		return UI.RED
 	if CoopState.hungry(index):
@@ -1051,6 +1067,21 @@ func _update_chickens(delta: float) -> void:
 
 func _update_chicken(index: int, view: ChickenView, bounds: Rect2, delta: float) -> void:
 	match view.mode:
+		MODE_LAY:
+			_play_anim(view, "crouch")
+			view.timer -= delta
+			if view.timer <= 0.0:
+				_finish_laying(index, view)
+		MODE_TO_NEST:
+			if not CoopState.lay_ready(index):
+				_abort_laying(index, view)
+			else:
+				var nest_point := _nest_lay_point(int(view.nest_index))
+				if view.pos.distance_to(nest_point) <= ARRIVE_DISTANCE:
+					_start_laying(index, view)
+				else:
+					_play_anim(view, "move")
+					_walk_towards(view, nest_point, delta)
 		MODE_EAT:
 			_play_anim(view, "eat")
 			view.timer -= delta
@@ -1071,12 +1102,16 @@ func _update_chicken(index: int, view: ChickenView, bounds: Rect2, delta: float)
 			view.timer -= delta
 			if _should_seek(index):
 				view.mode = MODE_SEEK
+			elif _try_start_laying(index, view):
+				pass
 			elif view.timer <= 0.0:
 				_pick_wander_target(view, bounds)
 		_:
 			# MODE_WANDER：朝随机点走过去，到了就站着歇一会儿
 			if _should_seek(index):
 				view.mode = MODE_SEEK
+			elif _try_start_laying(index, view):
+				pass
 			elif view.pos.distance_to(view.target) <= 6.0:
 				view.mode = MODE_IDLE
 				view.timer = randf_range(0.7, 2.0)
@@ -1098,6 +1133,70 @@ func _start_eating(index: int, view: ChickenView, eat_point: Vector2) -> void:
 	_play_anim(view, "eat")
 	show_feedback("%s 在食槽吃了一份饲料，还剩 %d 份。" % [
 		_chicken_display_name(index), CoopState.trough_stock], UI.GREEN_DARK)
+
+
+func _try_start_laying(index: int, view: ChickenView) -> bool:
+	# 同一时间只让一只鸡去下蛋；其他鸡即便计时到了也先继续溜达
+	if _laying_chicken >= 0:
+		return false
+	if not CoopState.lay_ready(index):
+		return false
+	if CoopState.eggs_on_ground >= CoopState.MAX_EGGS_ON_GROUND:
+		return false
+	var nest := clampi(floori(float(CoopState.eggs_on_ground) / float(EGGS_PER_NEST)), 0, NEST_COUNT - 1)
+	_laying_chicken = index
+	_laying_nest = nest
+	view.nest_index = nest
+	view.mode = MODE_TO_NEST
+	view.target = _nest_lay_point(nest)
+	show_feedback("%s 往 %d 号巢箱走过去了。" % [_chicken_display_name(index), nest + 1], UI.INK_SOFT)
+	return true
+
+
+func _start_laying(index: int, view: ChickenView) -> void:
+	view.mode = MODE_LAY
+	view.timer = LAY_SECONDS
+	view.facing = 1 if view.nest_index <= 1 else -1
+	_play_anim(view, "crouch")
+	show_feedback("%s 蹲在 %d 号巢箱前下蛋…" % [
+		_chicken_display_name(index), int(view.nest_index) + 1], UI.INK_SOFT)
+
+
+func _finish_laying(index: int, view: ChickenView) -> void:
+	var laid := CoopState.lay_egg(index)
+	var laid_nest := _laying_nest
+	_laying_chicken = -1
+	_laying_nest = -1
+	view.nest_index = -1
+	if laid > 0:
+		_sync_egg_buttons()
+		var egg_index := mini(CoopState.eggs_on_ground - 1, _egg_buttons.size() - 1)
+		if egg_index >= 0:
+			_float_text(_egg_buttons[egg_index], "+1 蛋", UI.GOLD)
+		show_feedback("%s 在 %d 号巢箱下了一枚蛋，点巢箱里的蛋收取。" % [
+			_chicken_display_name(index), laid_nest + 1], UI.GREEN_DARK)
+		view.mode = MODE_IDLE
+		view.timer = 1.4
+	else:
+		_pick_wander_target(view, _walk_bounds())
+
+
+func _abort_laying(index: int, view: ChickenView) -> void:
+	if _laying_chicken == index:
+		_laying_chicken = -1
+		_laying_nest = -1
+	view.nest_index = -1
+	_pick_wander_target(view, _walk_bounds())
+
+
+## 鸡走到巢箱下面站的落点：巢箱正下方的木地板上
+func _nest_lay_point(nest_index: int) -> Vector2:
+	var bounds := _walk_bounds()
+	var nest := clampi(nest_index, 0, NEST_COUNT - 1)
+	var rect: Rect2 = NEST_RECTS[nest]
+	var x := (rect.position.x + rect.size.x * 0.5) * _arena.size.x
+	var y := bounds.position.y + 8.0
+	return Vector2(clampf(x, bounds.position.x + 28.0, bounds.end.x - 28.0), y)
 
 
 func _should_seek(index: int) -> bool:
@@ -1196,8 +1295,15 @@ func _on_open() -> void:
 
 
 func _on_close() -> void:
-	# 关窗后交还给数据层自动进食，保证离开鸡舍时鸡也在吃 / 下蛋。
+	# 关窗后整个鸡舍暂停（含产蛋计时），避免不在场时凭空多蛋；
+	# 正在去巢箱/下蛋的鸡回到待机，下次打开再重新走。
 	CoopState.ui_active = false
+	if _laying_chicken >= 0 and _laying_chicken < _chickens.size():
+		var laying_view: ChickenView = _chickens[_laying_chicken]
+		laying_view.mode = MODE_IDLE
+		laying_view.timer = 0.4
+	_laying_chicken = -1
+	_laying_nest = -1
 
 
 func _on_inventory_changed() -> void:

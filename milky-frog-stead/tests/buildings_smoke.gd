@@ -143,35 +143,57 @@ func _run() -> void:
 	check("鸡吃一份饲料后饥饿下降",
 		fed and CoopState.chickens[0]["hunger"] < 80.0 and CoopState.trough_stock == 2)
 
+	# 下蛋必须由鸡走到巢箱：计时到点只代表“准备好”，不会凭空多蛋
 	CoopState.chickens[1]["hunger"] = 0.0
-	CoopState.chickens[1]["lay_timer"] = 0.1
+	CoopState.chickens[1]["lay_timer"] = 0.0
+	check("喂饱的鸡准备好下蛋", CoopState.lay_ready(1))
+	check("没走到巢箱前不会凭空多蛋", CoopState.eggs_on_ground == 0)
+	await _wait_frames(3)
+	check("鸡舍界面会派鸡去巢箱", coop_window._laying_chicken == 1)
+	var laying_view = coop_window._chickens[1]
+	check("去巢箱的鸡进入 TO_NEST 状态", int(laying_view.mode) == 4)
+	# 把鸡瞬移到巢箱前：模拟走到目的地，界面应切到“蹲下下蛋”
+	laying_view.pos = coop_window._nest_lay_point(int(laying_view.nest_index))
+	await _wait_frames(3)
+	check("到巢箱后进入下蛋动作", int(laying_view.mode) == 5)
+	laying_view.timer = 0.01
+	await _wait_frames(4)
+	check("下蛋动作结束后蛋才出现", CoopState.eggs_on_ground == 1)
+	await _wait_frames(2)
+	check("巢箱里的蛋有可点击控件", coop_window.visible_egg_count() == 1)
+
+	# 第二枚蛋用数据层接口补上，方便验证“点一枚只收一枚”
 	CoopState.chickens[2]["hunger"] = 0.0
-	CoopState.chickens[2]["lay_timer"] = 0.1
-	CoopState.tick(1.0)
-	check("喂饱的鸡会产蛋", CoopState.eggs_on_ground >= 2)
-	await get_tree().process_frame
-	check("地上的蛋有可点击控件", coop_window.visible_egg_count() == CoopState.eggs_on_ground)
+	CoopState.chickens[2]["lay_timer"] = 0.0
+	check("第二只鸡也准备好", CoopState.lay_ready(2))
+	check("lay_egg 会真的加一枚蛋", CoopState.lay_egg(2) == 1 and CoopState.eggs_on_ground == 2)
+	await _wait_frames(2)
+	check("两枚蛋都有可点击控件", coop_window.visible_egg_count() == 2)
 
 	var egg_before := Inventory.get_amount("egg")
-	var egg_count_before := CoopState.eggs_on_ground
 	var one: int = coop_window.press_collect_egg_at(0)
-	check("点一枚蛋只收一枚", one == 1 and CoopState.eggs_on_ground == egg_count_before - 1 		and Inventory.get_amount("egg") == egg_before + 1)
+	check("点一枚蛋只收一枚", one == 1 and CoopState.eggs_on_ground == 1 \
+		and Inventory.get_amount("egg") == egg_before + 1)
 	var collected: int = coop_window.press_collect_all()
-	check("收蛋进入仓库", collected >= 1 and Inventory.get_amount("egg") == egg_before + 1 + collected)
+	check("收蛋进入仓库", collected == 1 and Inventory.get_amount("egg") == egg_before + 2)
 	check("收完后地上没有蛋", CoopState.eggs_on_ground == 0 and coop_window.visible_egg_count() == 0)
 
 	# 再产一枚蛋，用来验证存档恢复
 	CoopState.chickens[2]["hunger"] = 0.0
-	CoopState.chickens[2]["lay_timer"] = 0.1
-	CoopState.tick(1.0)
-	check("存档前地上有蛋", CoopState.eggs_on_ground >= 1)
+	CoopState.chickens[2]["lay_timer"] = 0.0
+	check("存档前再下一枚蛋", CoopState.lay_egg(2) == 1 and CoopState.eggs_on_ground == 1)
 
 	var cancel := InputEventAction.new()
 	cancel.action = "ui_cancel"
 	cancel.pressed = true
 	coop_window._unhandled_input(cancel)
 	await get_tree().process_frame
-	check("关闭鸡舍后恢复自动进食", not CoopState.ui_active)
+	check("关闭鸡舍后暂停产出", not CoopState.ui_active)
+	var eggs_when_closed := CoopState.eggs_on_ground
+	CoopState.chickens[0]["hunger"] = 0.0
+	CoopState.chickens[0]["lay_timer"] = 0.0
+	CoopState.tick(1.0)
+	check("关窗期间不会凭空多蛋", CoopState.eggs_on_ground == eggs_when_closed)
 	check("鸡舍按 Esc 返回建筑中心", hub.visible and not coop_window.visible)
 
 	# ---------------- 存档 ----------------
@@ -198,3 +220,9 @@ func _run() -> void:
 	hub._unhandled_input(cancel_hub)
 	await get_tree().process_frame
 	check("建筑中心按 Esc 关闭整层", not sidebar._buildings_layer.visible)
+
+
+## 等若干帧，给界面 _process / 信号刷新留出时间（无头下帧很快，不浪费真实时间）
+func _wait_frames(count: int) -> void:
+	for i in range(count):
+		await get_tree().process_frame
