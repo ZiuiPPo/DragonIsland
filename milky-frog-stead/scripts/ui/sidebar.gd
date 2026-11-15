@@ -42,6 +42,7 @@ func _ready() -> void:
 	_collapse_immediately()
 	get_node("Layout/IconColumn/RecipesButton").pressed.connect(_open_workbench)
 	get_node("Layout/IconColumn/BuildingButton").pressed.connect(_open_buildings)
+	get_node("Layout/IconColumn/ShopButton").pressed.connect(_open_shop)
 	for child in _icon_column.get_children():
 		if child is SidebarIconButton:
 			child.toggled.connect(_on_icon_toggled.bind(child))
@@ -183,20 +184,35 @@ func _collapse_immediately() -> void:
 	_set_menu_height(0.0)
 	_menu_panel.visible = false
 
+func _ensure_buildings_layer() -> void:
+	if is_instance_valid(_buildings_layer):
+		return
+	_buildings_layer = CanvasLayer.new()
+	_buildings_layer.name = "BuildingsLayer"
+	_buildings_layer.layer = 50
+	add_child(_buildings_layer)
+	_building_hub = preload("res://scripts/ui/building_hub.gd").new()
+	_building_hub.closed.connect(_on_buildings_closed)
+	_buildings_layer.add_child(_building_hub)
+
+
 func _open_buildings() -> void:
 	close()
 	if is_instance_valid(_workbench) and _workbench.visible:
 		_workbench.close()
-	if not is_instance_valid(_buildings_layer):
-		_buildings_layer = CanvasLayer.new()
-		_buildings_layer.name = "BuildingsLayer"
-		_buildings_layer.layer = 50
-		add_child(_buildings_layer)
-		_building_hub = preload("res://scripts/ui/building_hub.gd").new()
-		_building_hub.closed.connect(_on_buildings_closed)
-		_buildings_layer.add_child(_building_hub)
+	_ensure_buildings_layer()
 	_buildings_layer.visible = true
 	_building_hub.open()
+
+
+## 侧栏商店按钮：直接打开建筑中心里的商店页，返回时回到建筑中心。
+func _open_shop() -> void:
+	close()
+	if is_instance_valid(_workbench) and _workbench.visible:
+		_workbench.close()
+	_ensure_buildings_layer()
+	_buildings_layer.visible = true
+	_building_hub.open_building("shop")
 
 
 func _on_buildings_closed() -> void:

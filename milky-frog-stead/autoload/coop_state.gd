@@ -22,7 +22,10 @@ signal chicken_ate(index: int)
 ## 某只鸡在巢箱下完了一枚蛋（参数：鸡的序号）
 signal chicken_laid(index: int)
 
-const CHICKEN_NAMES: Array[String] = ["小黄", "小白", "小花"]
+const CHICKEN_NAMES: Array[String] = ["小黄", "小白", "小花", "小橙", "小灰", "小黑"]
+const STARTING_CHICKENS: int = 3
+## 鸡舍最多养几只（商店买鸡的上限）
+const MAX_CHICKENS: int = 6
 const TROUGH_MAX: int = 9
 const MAX_EGGS_ON_GROUND: int = 6
 const HUNGER_MAX: float = 100.0
@@ -209,17 +212,20 @@ func to_dict() -> Dictionary:
 
 
 func from_dict(data: Dictionary) -> void:
-	reset()
+	_reset_counters_only()
 	var rows: Variant = data.get("chickens", [])
-	if rows is Array:
-		for i in range(mini((rows as Array).size(), chickens.size())):
-			var row: Variant = (rows as Array)[i]
-			if not (row is Dictionary):
-				continue
+	var target_count := STARTING_CHICKENS
+	if rows is Array and not (rows as Array).is_empty():
+		target_count = clampi((rows as Array).size(), 1, MAX_CHICKENS)
+	for i in range(target_count):
+		var chicken := _new_chicken_data(CHICKEN_NAMES[i] if i < CHICKEN_NAMES.size() else "小鸡%d" % (i + 1))
+		if rows is Array and i < (rows as Array).size() and (rows as Array)[i] is Dictionary:
+			var row: Dictionary = (rows as Array)[i]
 			if not String(row.get("name", "")).is_empty():
-				chickens[i]["name"] = String(row["name"])
-			chickens[i]["hunger"] = clampf(float(row.get("hunger", 30.0)), 0.0, HUNGER_MAX)
-			chickens[i]["lay_timer"] = clampf(float(row.get("lay_timer", 20.0)), 0.0, LAY_INTERVAL_MAX)
+				chicken["name"] = String(row["name"])
+			chicken["hunger"] = clampf(float(row.get("hunger", 30.0)), 0.0, HUNGER_MAX)
+			chicken["lay_timer"] = clampf(float(row.get("lay_timer", 20.0)), 0.0, LAY_INTERVAL_MAX)
+		chickens.append(chicken)
 	trough_stock = clampi(int(data.get("trough_stock", 0)), 0, TROUGH_MAX)
 	eggs_on_ground = clampi(int(data.get("eggs_on_ground", 0)), 0, MAX_EGGS_ON_GROUND)
 	total_eggs = maxi(0, int(data.get("total_eggs", 0)))
@@ -229,12 +235,8 @@ func from_dict(data: Dictionary) -> void:
 
 func reset() -> void:
 	chickens.clear()
-	for i in range(CHICKEN_NAMES.size()):
-		chickens.append({
-			"name": CHICKEN_NAMES[i],
-			"hunger": _rng.randf_range(18.0, 42.0),
-			"lay_timer": _rng.randf_range(12.0, 24.0),
-		})
+	for i in range(mini(STARTING_CHICKENS, CHICKEN_NAMES.size())):
+		chickens.append(_new_chicken_data(CHICKEN_NAMES[i]))
 	trough_stock = 0
 	eggs_on_ground = 0
 	total_eggs = 0
@@ -243,6 +245,42 @@ func reset() -> void:
 	changed.emit()
 
 
+## 商店买鸡时调用：往鸡舍里加一只，满员返回 false。
+func add_chicken(display_name: String = "") -> bool:
+	if chickens.size() >= MAX_CHICKENS:
+		return false
+	var used_names: Array[String] = []
+	for chicken in chickens:
+		used_names.append(String(chicken["name"]))
+	var name := display_name.strip_edges()
+	if name.is_empty():
+		for candidate in CHICKEN_NAMES:
+			if not used_names.has(candidate):
+				name = candidate
+				break
+	if name.is_empty():
+		name = "小鸡%d" % (chickens.size() + 1)
+	chickens.append(_new_chicken_data(name))
+	changed.emit()
+	return true
+
+
+func _new_chicken_data(chicken_name: String) -> Dictionary:
+	return {
+		"name": chicken_name,
+		"hunger": _rng.randf_range(18.0, 42.0),
+		"lay_timer": _rng.randf_range(12.0, 24.0),
+	}
+
+
+func _reset_counters_only() -> void:
+	# from_dict 内部用：先清空鸡只与计数，但不发信号，最后统一 emit
+	chickens.clear()
+	trough_stock = 0
+	eggs_on_ground = 0
+	total_eggs = 0
+	total_collected = 0
+	ui_active = false
 # ---------------- 内部 ----------------
 
 func _eat_one(index: int) -> bool:

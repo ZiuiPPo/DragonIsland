@@ -13,7 +13,7 @@ const CHICKEN_SHEET := preload("res://assets/sprites/chickens/chicken_all_left.p
 const GRASS_TUFT := preload("res://assets/sprites/decorations/grass_tuft.png")
 
 # ---------------- 场景尺寸 ----------------
-const CHICKEN_COUNT: int = 3
+const CHICKEN_SLOTS: int = 6
 const EGG_BUTTON_COUNT: int = 6
 const EGG_BUTTON_SIZE := Vector2(38.0, 38.0)
 const EGG_ICON_MAX_WIDTH: int = 34
@@ -143,6 +143,8 @@ var _chicken_name_labels: Array[Label] = []
 var _chicken_state_labels: Array[Label] = []
 var _chicken_hunger_bars: Array = []
 var _chicken_lay_bars: Array = []
+var _chicken_card_panels: Array[PanelContainer] = []
+var _chicken_count_label: Label = null
 var _trough_stock_label: Label = null
 var _wheat_label: Label = null
 var _fill_button: Button = null
@@ -202,7 +204,7 @@ func _build_arena(main: HBoxContainer) -> void:
 	_build_floor_decor()
 
 	_chicken_frames = _load_chicken_frames()
-	for index in range(CHICKEN_COUNT):
+	for index in range(CHICKEN_SLOTS):
 		_build_chicken(index)
 
 	# 暗角放最后压住整块场景增加纵深；mouse_filter=IGNORE 所以不挡食槽 / 蛋的点击
@@ -660,10 +662,22 @@ func _build_side_panel(main: HBoxContainer) -> void:
 	var title_spacer := Control.new()
 	title_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title_row.add_child(title_spacer)
-	title_row.add_child(UI.chip("%d 只小鸡" % CHICKEN_COUNT, UI.GREEN, 12))
+	var count_chip := UI.chip("%d 只小鸡" % CoopState.chickens.size(), UI.GREEN, 12)
+	title_row.add_child(count_chip)
+	_chicken_count_label = count_chip.get_child(0) as Label
 
-	for index in range(CHICKEN_COUNT):
-		_build_chicken_card(right, index)
+	# 最多 6 只鸡的卡片放进滚动区，买满也不会把旁边的食槽/鸡蛋卡挤爆
+	var chicken_scroll := ScrollContainer.new()
+	chicken_scroll.custom_minimum_size = Vector2(0, 258)
+	chicken_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	chicken_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	right.add_child(chicken_scroll)
+	var chicken_list := VBoxContainer.new()
+	chicken_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	chicken_list.add_theme_constant_override("separation", 6)
+	chicken_scroll.add_child(chicken_list)
+	for index in range(CHICKEN_SLOTS):
+		_chicken_card_panels.append(_build_chicken_card(chicken_list, index))
 
 	# 食槽
 	var feed_card := _make_card(right)
@@ -722,7 +736,7 @@ func _make_card(parent: VBoxContainer) -> VBoxContainer:
 	return column
 
 
-func _build_chicken_card(parent: VBoxContainer, index: int) -> void:
+func _build_chicken_card(parent: VBoxContainer, index: int) -> PanelContainer:
 	var card := PanelContainer.new()
 	card.add_theme_stylebox_override("panel", UI.card_style())
 	parent.add_child(card)
@@ -774,6 +788,7 @@ func _build_chicken_card(parent: VBoxContainer, index: int) -> void:
 	_chicken_state_labels.append(state_label)
 	_chicken_hunger_bars.append(hunger_bar)
 	_chicken_lay_bars.append(lay_bar)
+	return card
 
 
 # ---------------- 刷新 ----------------
@@ -798,9 +813,13 @@ func _refresh() -> void:
 	_collect_button.disabled = CoopState.eggs_on_ground <= 0
 	_sync_egg_buttons()
 
+	if _chicken_count_label != null:
+		_chicken_count_label.text = "%d 只小鸡" % CoopState.chickens.size()
+	for index in range(_chicken_card_panels.size()):
+		_chicken_card_panels[index].visible = index < CoopState.chickens.size()
 	for index in range(_chicken_name_labels.size()):
 		_chicken_name_labels[index].text = _chicken_display_name(index)
-
+	_sync_chicken_views()
 	_refresh_chicken_status()
 
 
@@ -952,11 +971,9 @@ func press_collect_egg_at(index: int) -> int:
 
 # ---------------- 调试 / 测试接口 ----------------
 
-## 画面里有几只鸡（固定 3 只）
+## 当前鸡舍里有几只鸡（商店买鸡后会变多）
 func chicken_visual_count() -> int:
-	if _chickens.is_empty():
-		return CHICKEN_COUNT
-	return _chickens.size()
+	return CoopState.chickens.size()
 
 
 ## 当前显示了多少枚可点击的蛋（= min(eggs_on_ground, 6)）
@@ -989,29 +1006,45 @@ func _ensure_chickens_ready() -> void:
 	if _arena.size.x < 80.0 or _arena.size.y < 80.0:
 		return
 	_chickens_initialized = true
+	_sync_chicken_views()
+
+
+## 按 CoopState 里的鸡数量显示/隐藏鸡只：商店买鸡后新鸡也会出现。
+func _sync_chicken_views() -> void:
+	if not _chickens_initialized:
+		return
 	var bounds := _walk_bounds()
+	var active := CoopState.chickens.size()
 	for index in range(_chickens.size()):
 		var view: ChickenView = _chickens[index]
-		var t := 0.25 + 0.25 * float(index)
-		view.pos = Vector2(
-			lerpf(bounds.position.x + 56.0, bounds.end.x - 56.0, t),
-			lerpf(bounds.position.y + 26.0, bounds.end.y - 46.0, 0.34 + 0.22 * float(index % 2)))
-		view.target = view.pos
-		view.mode = MODE_IDLE
-		view.timer = 0.6 + 0.4 * float(index)
-		view.facing = 1 if index % 2 == 0 else -1
-		view.sprite.visible = true
-		view.sprite.position = view.pos
-		view.shadow.visible = true
-		view.shadow.position = view.pos - CHICKEN_SHADOW_SIZE * 0.5
-		_play_anim(view, "idle")
+		var should_show := index < active
+		if should_show and not view.sprite.visible:
+			var t := 0.18 + 0.16 * float(index % 5)
+			view.pos = Vector2(
+				lerpf(bounds.position.x + 56.0, bounds.end.x - 56.0, t),
+				lerpf(bounds.position.y + 26.0, bounds.end.y - 46.0, 0.30 + 0.24 * float(index % 2)))
+			view.target = view.pos
+			view.mode = MODE_IDLE
+			view.timer = 0.6 + 0.4 * float(index)
+			view.facing = 1 if index % 2 == 0 else -1
+			view.sprite.position = view.pos
+			view.sprite.visible = true
+			view.shadow.position = view.pos - CHICKEN_SHADOW_SIZE * 0.5
+			view.shadow.visible = true
+			_play_anim(view, "idle")
+		view.sprite.visible = should_show
+		view.shadow.visible = should_show
+		if not should_show and _laying_chicken == index:
+			_laying_chicken = -1
+			_laying_slot = -1
 
 
 func _update_chickens(delta: float) -> void:
 	if _arena == null or _arena.size.x < 80.0:
 		return
 	var bounds := _walk_bounds()
-	for index in range(_chickens.size()):
+	var active := mini(_chickens.size(), CoopState.chickens.size())
+	for index in range(active):
 		var view: ChickenView = _chickens[index]
 		_update_chicken(index, view, bounds, delta)
 
@@ -1197,7 +1230,8 @@ func _trough_eat_point(index: int) -> Vector2:
 	if _trough_button != null and _trough_button.size.x > 1.0:
 		center_x = _trough_button.position.x + _trough_button.size.x * 0.5
 		stand_y = _trough_button.position.y - 6.0
-	var spread := (float(index) - float(CHICKEN_COUNT - 1) * 0.5) * 52.0
+	var active_count := maxi(1, CoopState.chickens.size())
+	var spread := (float(index) - float(active_count - 1) * 0.5) * 44.0
 	return Vector2(center_x + spread, clampf(stand_y, bounds.position.y, bounds.end.y))
 
 
