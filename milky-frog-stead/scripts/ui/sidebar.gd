@@ -28,6 +28,8 @@ const ANIM_TIME: float = 0.18       ## 要"快速弹出"就调小这个值
 @onready var _icon_column: VBoxContainer = %IconColumn
 
 var _workbench: Control
+var _buildings_layer: CanvasLayer = null
+var _building_hub: Control = null
 
 var _menus: Dictionary = {}                  ## SidebarIconButton -> Control（懒加载缓存）
 var _open_button: SidebarIconButton = null
@@ -39,6 +41,7 @@ var _fade_tween: Tween = null
 func _ready() -> void:
 	_collapse_immediately()
 	get_node("Layout/IconColumn/RecipesButton").pressed.connect(_open_workbench)
+	get_node("Layout/IconColumn/BuildingButton").pressed.connect(_open_buildings)
 	for child in _icon_column.get_children():
 		if child is SidebarIconButton:
 			child.toggled.connect(_on_icon_toggled.bind(child))
@@ -180,8 +183,40 @@ func _collapse_immediately() -> void:
 	_set_menu_height(0.0)
 	_menu_panel.visible = false
 
+func _open_buildings() -> void:
+	close()
+	if is_instance_valid(_workbench) and _workbench.visible:
+		_workbench.close()
+	if not is_instance_valid(_buildings_layer):
+		_buildings_layer = CanvasLayer.new()
+		_buildings_layer.name = "BuildingsLayer"
+		_buildings_layer.layer = 50
+		add_child(_buildings_layer)
+		_building_hub = preload("res://scripts/ui/building_hub.gd").new()
+		_building_hub.closed.connect(_on_buildings_closed)
+		_buildings_layer.add_child(_building_hub)
+	_buildings_layer.visible = true
+	_building_hub.open()
+
+
+func _on_buildings_closed() -> void:
+	if is_instance_valid(_buildings_layer):
+		_buildings_layer.visible = false
+
+
+func _close_buildings() -> void:
+	# 走 hub.close()：它会先关掉打开中的建筑页（鸡舍页要借此把 ui_active 交还数据层），
+	# 再发 closed，由 _on_buildings_closed 把整层隐藏。
+	if is_instance_valid(_buildings_layer) and _buildings_layer.visible:
+		if is_instance_valid(_building_hub):
+			_building_hub.close()
+		else:
+			_buildings_layer.visible = false
+
+
 func _open_workbench() -> void:
 	close()
+	_close_buildings()
 	if not is_instance_valid(_workbench):
 		var layer := CanvasLayer.new()
 		layer.name = "CookingLayer"

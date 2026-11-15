@@ -22,6 +22,10 @@ ItemDB="*res://autoload/item_db.gd"
 Inventory="*res://autoload/inventory.gd"
 StaffCare="*res://autoload/staff_care.gd"
 StaffRegistry="*res://scripts/core/staff_registry.gd"
+GameClock="*res://autoload/game_clock.gd"
+FarmOutput="*res://autoload/farm_output.gd"
+FarmState="*res://autoload/farm_state.gd"
+CoopState="*res://autoload/coop_state.gd"
 SaveManager="*res://scripts/core/save_manager.gd"
 
 [display]

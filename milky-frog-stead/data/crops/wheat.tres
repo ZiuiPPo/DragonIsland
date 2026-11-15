@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="CropData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/crop_data.gd" id="1_crop"]
+[ext_resource type="Texture2D" path="res://assets/plants/wheat.png" id="2_plant"]
+
+[resource]
+script = ExtResource("1_crop")
+id = "wheat"
+display_name = "小麦"
+seed_item_id = "wheat_seed"
+yield_item_id = "wheat"
+grow_days = 2
+yield_min = 2
+yield_max = 3
+buy_price = 20
+plant_texture = ExtResource("2_plant")
+plant_frames = 4
+plant_tint = Color(1, 1, 1, 1)

@@ -12,7 +12,7 @@ extends Node
 ##   3. 农场场景调用 begin_session() 启用数据变化时的自动存档；
 ##   4. 离开农场 / 手动保存 / 关闭窗口时调用 save_game()。
 
-var SAVE_PATH: String = "user://save.drag-care-test.json" if OS.get_cmdline_user_args().has("--test-save") else "user://save.json"
+var SAVE_PATH: String = "user://save.json"
 const SAVE_VERSION: int = 1
 
 ## 新游戏默认金币，和 scenes/farm.tscn 里 CoinCounter.start_gold 保持一致
@@ -42,6 +42,7 @@ var _pending_clock: Dictionary = {}
 
 
 func _ready() -> void:
+	_apply_test_save_path()
 	_autosave_timer = Timer.new()
 	_autosave_timer.name = "AutosaveDelay"
 	_autosave_timer.one_shot = true
@@ -87,6 +88,9 @@ func start_new_game() -> void:
 	_pending_clock = {}
 	StaffRegistry.clear()
 	Inventory.reset_to_starting()
+	FarmState.reset()
+	CoopState.reset()
+	FarmOutput.reset()
 	_pending_gold = DEFAULT_GOLD
 	_last_gold = DEFAULT_GOLD
 	_session_active = false
@@ -104,6 +108,7 @@ func load_save() -> bool:
 	_pending_clock = data.get("clock", {}) if data.get("clock", {}) is Dictionary else {}
 	StaffRegistry.from_dict(data.get("staff", []))
 	_restore_inventory(data)
+	_restore_buildings(data)
 	_pending_gold = int(data.get("gold", DEFAULT_GOLD))
 	_last_gold = _pending_gold
 	_session_active = false
@@ -178,6 +183,10 @@ func save_game() -> bool:
 		"clock": _read_clock_from_scene(),
 		"inventory": Inventory.to_dict(),
 		"warehouse_slots": Inventory.warehouse_slots,
+		"buildings": {
+			"farm": FarmState.to_dict(),
+			"coop": CoopState.to_dict(),
+		},
 	}
 
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
@@ -257,3 +266,29 @@ func _restore_inventory(data: Dictionary) -> void:
 		for entry in saved.slice(0, 40):
 			Inventory.warehouse_slots.append(entry.duplicate() if entry is Dictionary else {})
 	EventBus.inventory_reloaded.emit()
+
+
+## 建筑存档：农田地块 + 鸡舍状态。旧存档没有该字段时回到默认状态。
+func _restore_buildings(data: Dictionary) -> void:
+	var buildings: Variant = data.get("buildings", {})
+	if not (buildings is Dictionary):
+		FarmState.reset()
+		CoopState.reset()
+		return
+	var farm: Variant = buildings.get("farm", {})
+	FarmState.from_dict(farm if farm is Dictionary else {})
+	var coop: Variant = buildings.get("coop", {})
+	CoopState.from_dict(coop if coop is Dictionary else {})
+
+
+## 测试存档隔离：
+##   --test-save                改用独立的测试文件名，不碰玩家正式存档；
+##   --test-save-in-workspace   再把它放到工程内 .tmp/ 下，方便无头验收环境读写。
+func _apply_test_save_path() -> void:
+	if not OS.get_cmdline_user_args().has("--test-save"):
+		return
+	SAVE_PATH = "user://save.drag-care-test.json"
+	if not OS.get_cmdline_user_args().has("--test-save-in-workspace"):
+		return
+	DirAccess.make_dir_recursive_absolute("res://.tmp")
+	SAVE_PATH = "res://.tmp/save.test.json"

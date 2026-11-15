@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="CropData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/crop_data.gd" id="1_crop"]
+[ext_resource type="Texture2D" path="res://assets/plants/pumpkin.png" id="2_plant"]
+
+[resource]
+script = ExtResource("1_crop")
+id = "turnip"
+display_name = "萝卜"
+seed_item_id = "turnip_seed"
+yield_item_id = "turnip"
+grow_days = 1
+yield_min = 1
+yield_max = 2
+buy_price = 10
+plant_texture = ExtResource("2_plant")
+plant_frames = 4
+plant_tint = Color(1, 0.62, 0.45, 1)
