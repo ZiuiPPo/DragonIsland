@@ -17,6 +17,8 @@ const SAVE_VERSION: int = 1
 
 ## 新游戏默认金币，和 scenes/farm.tscn 里 CoinCounter.start_gold 保持一致
 const DEFAULT_GOLD: int = 500
+## 老存档一次性演示补给：读档时补 10 小麦，方便直接进鸡舍喂鸡/演示
+const DEMO_SUPPLY_WHEAT: int = 10
 
 ## 农场场景与主菜单场景：菜单按钮跳转时统一用这里，避免路径写散
 const GAME_SCENE: String = "res://scenes/farm.tscn"
@@ -109,6 +111,7 @@ func load_save() -> bool:
 	StaffRegistry.from_dict(data.get("staff", []))
 	_restore_inventory(data)
 	_restore_buildings(data)
+	_apply_demo_supply(data)
 	_pending_gold = int(data.get("gold", DEFAULT_GOLD))
 	_last_gold = _pending_gold
 	_session_active = false
@@ -187,6 +190,8 @@ func save_game() -> bool:
 			"farm": FarmState.to_dict(),
 			"coop": CoopState.to_dict(),
 		},
+		# 读档补给只发一次；写进存档后就标记为已发过
+		"demo_wheat_supply": true,
 	}
 
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
@@ -279,6 +284,16 @@ func _restore_buildings(data: Dictionary) -> void:
 	FarmState.from_dict(farm if farm is Dictionary else {})
 	var coop: Variant = buildings.get("coop", {})
 	CoopState.from_dict(coop if coop is Dictionary else {})
+
+
+## 老存档没有小麦/食槽是空的时候，读档一次性补 10 小麦。
+## 只对没有该标记的旧存档生效；写进存档后不会重复发；测试存档不参与。
+func _apply_demo_supply(data: Dictionary) -> void:
+	if OS.get_cmdline_user_args().has("--test-save"):
+		return
+	if bool(data.get("demo_wheat_supply", false)):
+		return
+	Inventory.add("wheat", DEMO_SUPPLY_WHEAT)
 
 
 ## 测试存档隔离：

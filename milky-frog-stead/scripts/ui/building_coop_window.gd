@@ -724,6 +724,12 @@ func _build_side_panel(main: HBoxContainer) -> void:
 	_fill_button = UI.primary_button("投喂 3 份", 15, 40)
 	_fill_button.pressed.connect(press_trough)
 	feed_card.add_child(_fill_button)
+	# 仅编辑器调试运行可见：方便测试/演示时快速补小麦，正式导出不会出现
+	if OS.is_debug_build():
+		var debug_gift := UI.ghost_button("调试补给：小麦 +10", 12, 28)
+		debug_gift.tooltip_text = "仅编辑器调试运行可见；正式导出不会出现"
+		debug_gift.pressed.connect(_debug_gift_wheat)
+		feed_card.add_child(debug_gift)
 
 	# 巢箱里的蛋
 	var egg_card := _make_card(right)
@@ -937,6 +943,15 @@ func press_trough() -> int:
 		show_feedback("仓库里没有小麦了，先去农田收小麦再回仓库拿。", UI.RED)
 	_refresh()
 	return filled
+
+
+## 调试补给（仅 debug build）：快速补 10 小麦，方便反复测试投喂/产蛋。
+func _debug_gift_wheat() -> void:
+	if not OS.is_debug_build():
+		return
+	Inventory.add(CoopState.FEED_ITEM_ID, 10)
+	show_feedback("调试补给：小麦 +10（仓库共 %d 颗）" % Inventory.get_amount(CoopState.FEED_ITEM_ID), UI.GREEN)
+	_refresh()
 
 
 ## 点「一键收蛋」：把巢箱里的蛋全部入库，返回入库数量。
