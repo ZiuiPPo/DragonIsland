@@ -87,7 +87,7 @@ func is_open() -> bool:
 	return visible
 
 
-## 底部提示条：操作反馈用（例如"买了 1 颗萝卜种子"）
+## 底部提示条：操作反馈用（例如"买了 1 颗玉米种子"）
 func show_feedback(text_value: String, color: Color = UI.TEXT_SOFT) -> void:
 	if _feedback_label == null:
 		return

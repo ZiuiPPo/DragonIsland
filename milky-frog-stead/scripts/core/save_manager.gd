@@ -269,7 +269,18 @@ func _restore_inventory(data: Dictionary) -> void:
 	var saved: Variant = data.get("warehouse_slots", [])
 	if saved is Array:
 		for entry in saved.slice(0, 40):
-			Inventory.warehouse_slots.append(entry.duplicate() if entry is Dictionary else {})
+			if not (entry is Dictionary):
+				Inventory.warehouse_slots.append({})
+				continue
+			var copy: Dictionary = (entry as Dictionary).duplicate()
+			var item_id := String(copy.get("item_id", ""))
+			if not item_id.is_empty():
+				if Inventory.REMOVED_ITEM_IDS.has(item_id):
+					Inventory.warehouse_slots.append({})
+					continue
+				if Inventory.LEGACY_ITEM_IDS.has(item_id):
+					copy["item_id"] = String(Inventory.LEGACY_ITEM_IDS[item_id])
+			Inventory.warehouse_slots.append(copy)
 	EventBus.inventory_reloaded.emit()
 
 

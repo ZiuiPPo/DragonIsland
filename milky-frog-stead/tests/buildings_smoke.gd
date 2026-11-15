@@ -35,12 +35,19 @@ func _run() -> void:
 	check("农田 18 块地", FarmState.PLOT_COUNT == 18 and FarmState.plots.size() == 18)
 	var crop_ids := FarmState.crop_ids()
 	check("作物配置 4 种", crop_ids.size() == 4)
-	for expected_id in ["turnip", "lettuce", "wheat", "tomato"]:
+	for expected_id in ["corn", "pumpkin", "wheat", "tomato"]:
 		check("作物配置包含 " + expected_id, crop_ids.has(expected_id))
 	for crop_id in crop_ids:
 		var crop := FarmState.crop_by_id(String(crop_id))
 		check("作物 %s 的种子/产物都已注册" % crop_id,
 			crop != null and ItemDB.has_item(String(crop.seed_item_id)) and ItemDB.has_item(String(crop.yield_item_id)))
+
+	# 旧存档物品 ID 迁移：生菜/萝卜 → 玉米/南瓜
+	Inventory.from_dict({"lettuce": 2, "turnip": 3, "lettuce_seed": 1, "turnip_seed": 1})
+	check("旧存档生菜迁移为玉米", Inventory.get_amount("corn") == 2)
+	check("旧存档萝卜迁移为南瓜", Inventory.get_amount("pumpkin") == 3)
+	check("旧种子迁移为玉米/南瓜种子",
+		Inventory.get_amount("corn_seed") == 1 and Inventory.get_amount("pumpkin_seed") == 1)
 
 	# ---------------- 场景与建筑入口 ----------------
 	var farm = load("res://scenes/farm.tscn").instantiate()
@@ -66,17 +73,17 @@ func _run() -> void:
 	check("农田页有 18 块地", farm_window.plot_count() == 18)
 
 	# ---------------- 种地闭环 ----------------
-	Inventory.from_dict({"turnip_seed": 5, "wheat_seed": 4, "wheat": 10})
+	Inventory.from_dict({"pumpkin_seed": 5, "wheat_seed": 4, "wheat": 10})
 	FarmState.reset()
 	await get_tree().process_frame
 
 	farm_window.click_plot(0)
 	check("点空地可以锄地", FarmState.plot_state(0) == FarmState.State.TILLED)
 
-	farm_window.select_seed("turnip")
+	farm_window.select_seed("pumpkin")
 	farm_window.click_plot(0)
 	check("点已锄地可以播种", FarmState.plot_state(0) == FarmState.State.GROWING)
-	check("播种扣掉 1 颗种子", Inventory.get_amount("turnip_seed") == 4)
+	check("播种扣掉 1 颗种子", Inventory.get_amount("pumpkin_seed") == 4)
 
 	var clock = farm.get_node_or_null("DayNightCycle")
 	check("农场里有昼夜时钟", clock != null)
@@ -85,24 +92,24 @@ func _run() -> void:
 	clock.day += 1
 	await get_tree().process_frame
 	await get_tree().process_frame
-	check("萝卜 1 天后成熟", FarmState.plot_state(0) == FarmState.State.RIPE)
+	check("南瓜 1 天后成熟", FarmState.plot_state(0) == FarmState.State.RIPE)
 	check("成熟地块显示可收标记", farm_window.visible_ripe_marker_count() >= 1)
 
-	var turnip_before := Inventory.get_amount("turnip")
+	var pumpkin_before := Inventory.get_amount("pumpkin")
 	farm_window.click_plot(0)
-	var turnip_gained := Inventory.get_amount("turnip") - turnip_before
-	check("收获萝卜进仓库 1~2 个", turnip_gained >= 1 and turnip_gained <= 2)
+	var pumpkin_gained := Inventory.get_amount("pumpkin") - pumpkin_before
+	check("收获南瓜进仓库 1~2 个", pumpkin_gained >= 1 and pumpkin_gained <= 2)
 	check("收获后地块回到已锄地", FarmState.plot_state(0) == FarmState.State.TILLED)
-	check("同一块地不会重复收获", FarmState.harvest(0).is_empty() and Inventory.get_amount("turnip") == turnip_before + turnip_gained)
+	check("同一块地不会重复收获", FarmState.harvest(0).is_empty() and Inventory.get_amount("pumpkin") == pumpkin_before + pumpkin_gained)
 
 	var coin_counter = get_tree().get_first_node_in_group("coin_counter")
 	check("农场里有蛙币计数器", coin_counter != null)
 	if coin_counter != null:
 		coin_counter.set_gold(500, false)
-		var seed_before := Inventory.get_amount("turnip_seed")
-		var bought: bool = farm_window.buy_seed("turnip")
+		var seed_before := Inventory.get_amount("pumpkin_seed")
+		var bought: bool = farm_window.buy_seed("pumpkin")
 		check("窗口内可以花蛙币买种子",
-			bought and Inventory.get_amount("turnip_seed") == seed_before + 1 and coin_counter.get_gold() == 490)
+			bought and Inventory.get_amount("pumpkin_seed") == seed_before + 1 and coin_counter.get_gold() == 490)
 
 	FarmState.till(1)
 	FarmState.plant(1, "wheat")

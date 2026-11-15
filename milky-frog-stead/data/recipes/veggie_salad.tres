@@ -4,7 +4,7 @@
 script = ExtResource("1")
 id = "veggie_salad"
 display_name = "呆呆蔬菜沙拉"
-ingredients = {"tomato": 1, "lettuce": 1, "turnip": 1}
+ingredients = {"tomato": 1, "corn": 1, "pumpkin": 1}
 output_id = "veggie_salad"
 output_amount = 2
 description = "三种食材凑不出一个聪明脑袋。"

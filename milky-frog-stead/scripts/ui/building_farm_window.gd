@@ -254,7 +254,7 @@ func _build_side_panel(main: HBoxContainer) -> void:
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	right.add_child(spacer)
 	right.add_child(UI.wrapped_label(
-		"作物按游戏日生长：萝卜/生菜 1 天，小麦/番茄 2 天。可以在侧栏「时间」菜单里推进时段来跨天。", 12))
+		"作物按游戏日生长：玉米/南瓜 1 天，小麦/番茄 2 天。可以在侧栏「时间」菜单里推进时段来跨天。", 12))
 
 
 func _build_seed_card(parent: VBoxContainer, crop: CropData) -> void:

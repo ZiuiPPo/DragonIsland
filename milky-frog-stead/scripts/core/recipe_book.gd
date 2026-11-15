@@ -1,6 +1,6 @@
 class_name RecipeBook
 extends RefCounted
-const IDS: Array[String] = ["egg_bread", "tomato_egg", "veggie_salad", "turnip_stew", "egg_pudding"]
+const IDS: Array[String] = ["egg_bread", "tomato_egg", "veggie_salad", "pumpkin_stew", "egg_pudding"]
 
 static func all() -> Array[RecipeData]:
 	var out: Array[RecipeData] = []

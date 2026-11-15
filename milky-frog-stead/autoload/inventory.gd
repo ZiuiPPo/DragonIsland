@@ -4,13 +4,22 @@ extends Node
 ## 主线暂未接生产系统：新游戏赠送食物供拖拽喂食，同时保留种子。
 ## 想改初始库存只改这里，别散落在场景脚本里。
 # Save migration preserves renamed dishes and drops explicitly retired test items.
-const LEGACY_ITEM_IDS := {"fruit_salad": "veggie_salad", "milk_pudding": "egg_pudding"}
+const LEGACY_ITEM_IDS := {
+	"fruit_salad": "veggie_salad",
+	"milk_pudding": "egg_pudding",
+	# 旧存档里生菜/萝卜的命名与项目美术（玉米/南瓜）不一致，统一迁移到新 ID
+	"lettuce": "corn",
+	"turnip": "pumpkin",
+	"lettuce_seed": "corn_seed",
+	"turnip_seed": "pumpkin_seed",
+	"turnip_stew": "pumpkin_stew",
+}
 const REMOVED_ITEM_IDS := ["fish", "milk_fruit", "fish_bun"]
 const STARTING_ITEMS := {
 	"wheat": 12,
 	"egg": 6,
 	"tomato": 8,
-	"turnip_seed": 4,
+	"pumpkin_seed": 4,
 	"wheat_seed": 4,
 }
 

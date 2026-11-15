@@ -11,7 +11,7 @@ func _find(warehouse: Control, item_id: String) -> int:
 			return i
 	return -1
 func stock() -> Dictionary:
-	return {"wheat": 40, "egg": 30, "tomato": 30, "lettuce": 20, "turnip": 20, "wheat_seed": 4}
+	return {"wheat": 40, "egg": 30, "tomato": 30, "corn": 20, "pumpkin": 20, "wheat_seed": 4}
 func _ready() -> void:
 	if not OS.get_cmdline_user_args().has("--test-save"):
 		get_tree().quit(1)
