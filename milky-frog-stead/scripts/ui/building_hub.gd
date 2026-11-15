@@ -9,18 +9,14 @@ signal closed
 const UI := preload("res://scripts/ui/building_ui.gd")
 const FARM_WINDOW := preload("res://scripts/ui/building_farm_window.gd")
 const COOP_WINDOW := preload("res://scripts/ui/building_coop_window.gd")
-const SHOP_WINDOW := preload("res://scripts/ui/shop_window.gd")
 const WHEAT_TEXTURE := preload("res://assets/plants/wheat.png")
 const COOP_HOUSE_TEXTURE := preload("res://assets/sprites/decorations/farmland_set_20261105/house_egg.png")
-const SHOP_ART := preload("res://assets/icons/gameplay_character/shop.png")
 
 var _window_layer: Node
 var _farm_window: Control = null
 var _coop_window: Control = null
-var _shop_window: Control = null
 var _farm_status: Label = null
 var _coop_status: Label = null
-var _shop_status: Label = null
 var _day_label: Label = null
 var _coin_label: Label = null
 var _active_kind: String = ""
@@ -85,7 +81,7 @@ func _build() -> void:
 	add_child(center)
 
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(1180, 660)
+	panel.custom_minimum_size = Vector2(1040, 640)
 	panel.add_theme_stylebox_override("panel", UI.page_style())
 	center.add_child(panel)
 
@@ -114,7 +110,7 @@ func _build() -> void:
 	header.add_child(exit_button)
 	content.add_child(UI.divider())
 
-	# 三张建筑卡片
+	# 两张建筑卡片
 	var cards := HBoxContainer.new()
 	cards.add_theme_constant_override("separation", 22)
 	cards.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -131,16 +127,9 @@ func _build() -> void:
 		COOP_HOUSE_TEXTURE, 1, 0, Color("3a2c1a"),
 		"进入鸡舍", Color("a97c23")
 	)
-	_shop_status = _make_building_card(
-		cards, "shop", "商店",
-		"买种子、买小鸡、买鸡饲料；付完款立刻进仓库或鸡舍。",
-		SHOP_ART, 1, 0, Color("2a2118"),
-		"进入商店", Color("b07a32")
-	)
-
 	content.add_child(UI.divider())
 	content.add_child(UI.wrapped_label(
-		"建筑的产出一律进仓库；商店付款用蛙币；按 Esc 关闭建筑界面。钓鱼台、果园后续开放。", 12))
+		"两座建筑的产出一律进仓库；商店在侧边栏「商店」按钮里；按 Esc 关闭建筑界面。钓鱼台、果园后续开放。", 12))
 
 
 func _make_building_card(parent: Container, kind: String, title: String, description: String,
@@ -211,10 +200,6 @@ func _refresh() -> void:
 		_coop_status.text = "小鸡 %d/%d · 饲料 %d · 地板蛋 %d" % [
 			CoopState.chickens.size(), CoopState.MAX_CHICKENS,
 			CoopState.trough_stock, CoopState.eggs_on_ground]
-	if _shop_status != null:
-		_shop_status.text = "小鸡 %d/%d · 饲料 %d · 累计收蛋 %d" % [
-			CoopState.chickens.size(), CoopState.MAX_CHICKENS,
-			CoopState.trough_stock, CoopState.total_collected]
 
 
 func _on_day_changed(_day: int) -> void:
@@ -242,13 +227,6 @@ func _ensure_window(kind: String) -> Control:
 			_coop_window.back_requested.connect(_on_window_back)
 			_coop_window.exit_requested.connect(_on_window_exit)
 		return _coop_window
-	if kind == "shop":
-		if not is_instance_valid(_shop_window):
-			_shop_window = SHOP_WINDOW.new()
-			_window_layer.add_child(_shop_window)
-			_shop_window.back_requested.connect(_on_window_back)
-			_shop_window.exit_requested.connect(_on_window_exit)
-		return _shop_window
 	return null
 
 
@@ -268,8 +246,6 @@ func _hide_windows() -> void:
 		_farm_window.close()
 	if is_instance_valid(_coop_window):
 		_coop_window.close()
-	if is_instance_valid(_shop_window):
-		_shop_window.close()
 
 
 func _close_windows() -> void:

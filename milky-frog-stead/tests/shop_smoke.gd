@@ -40,11 +40,9 @@ func _ready() -> void:
 	shop_button.pressed.emit()
 	await get_tree().process_frame
 	await get_tree().process_frame
-	var hub = sidebar._building_hub
-	check("商店入口打开建筑层", hub != null and hub._shop_window != null)
-	var shop = hub._shop_window
-	check("商店页可见", shop != null and shop.visible)
-	check("建筑中心有商店卡片", hub._shop_status != null)
+	check("侧栏商店不经过建筑层", sidebar._buildings_layer == null or not sidebar._buildings_layer.visible)
+	var shop = sidebar._shop_window
+	check("侧栏商店打开独立商店页", shop != null and shop.visible)
 
 	# ---------------- 买种子 ----------------
 	var corn_before := Inventory.get_amount("corn_seed")
@@ -77,6 +75,13 @@ func _ready() -> void:
 
 	# ---------------- 鸡舍显示 6 只 ----------------
 	shop.close()
+	sidebar._on_shop_closed()
+	sidebar._open_buildings()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var hub = sidebar._building_hub
+	check("建筑中心不再有商店卡片", hub != null and hub.get("_shop_status") == null)
+	check("建筑中心仍可打开鸡舍", hub != null)
 	hub.open_building("coop")
 	await get_tree().process_frame
 	await get_tree().process_frame

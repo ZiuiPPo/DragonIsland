@@ -20,12 +20,24 @@ var _right_stock_labels: Dictionary = {}
 var _chicken_portrait: TextureRect = null
 
 
+const SACK_ICONS := {
+	"corn": preload("res://assets/icons/items/corn_seeds.png"),
+	"pumpkin": preload("res://assets/icons/items/pumpkin_seeds.png"),
+	"tomato": preload("res://assets/icons/items/tomato_seeds.png"),
+	"wheat": preload("res://assets/icons/items/wheat_seeds.png"),
+}
+
+
 func page_title() -> String:
 	return "商店"
 
 
+func back_button_text() -> String:
+	return "← 返回"
+
+
 func page_hint() -> String:
-	return "买种子、买小鸡、买饲料 · 扣蛙币 · Esc 返回建筑"
+	return "买种子、买小鸡、买饲料 · 扣蛙币 · Esc 返回"
 
 
 func _build_body(parent: VBoxContainer) -> void:
@@ -116,7 +128,8 @@ func _build_seed_card(parent: GridContainer, crop: CropData) -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
 	panel.add_child(row)
-	row.add_child(UI.icon_slot(ItemDB.icon(String(crop.seed_item_id)), 44.0))
+	# 商店专用：使用 master 新加的麻袋种子图标；农田/仓库仍用原来的种子包图标
+	row.add_child(UI.icon_slot(SACK_ICONS.get(String(crop.id), ItemDB.icon(String(crop.seed_item_id))), 44.0))
 
 	var column := VBoxContainer.new()
 	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL

@@ -44,6 +44,11 @@ func page_title() -> String:
 	return "建筑"
 
 
+## 返回按钮文字；商店等非建筑页可以覆盖
+func back_button_text() -> String:
+	return "← 建筑"
+
+
 func page_hint() -> String:
 	return "Esc / ← 建筑 返回建筑列表"
 
@@ -135,7 +140,7 @@ func _build_shell() -> void:
 	header.add_child(day_label)
 	coin_label = UI.label("蛙币 0", 16)
 	header.add_child(coin_label)
-	var back_button := UI.button("← 建筑", 15, 38)
+	var back_button := UI.button(String(back_button_text()), 15, 38)
 	back_button.pressed.connect(_on_back_button_pressed)
 	header.add_child(back_button)
 	var exit_button := UI.button("关闭 ×", 15, 38)

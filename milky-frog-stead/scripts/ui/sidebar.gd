@@ -30,6 +30,8 @@ const ANIM_TIME: float = 0.18       ## 要"快速弹出"就调小这个值
 var _workbench: Control
 var _buildings_layer: CanvasLayer = null
 var _building_hub: Control = null
+var _shop_layer: CanvasLayer = null
+var _shop_window: Control = null
 
 var _menus: Dictionary = {}                  ## SidebarIconButton -> Control（懒加载缓存）
 var _open_button: SidebarIconButton = null
@@ -198,6 +200,7 @@ func _ensure_buildings_layer() -> void:
 
 func _open_buildings() -> void:
 	close()
+	_close_shop()
 	if is_instance_valid(_workbench) and _workbench.visible:
 		_workbench.close()
 	_ensure_buildings_layer()
@@ -205,14 +208,41 @@ func _open_buildings() -> void:
 	_building_hub.open()
 
 
-## 侧栏商店按钮：直接打开建筑中心里的商店页，返回时回到建筑中心。
+func _ensure_shop_layer() -> void:
+	if is_instance_valid(_shop_layer):
+		return
+	_shop_layer = CanvasLayer.new()
+	_shop_layer.name = "ShopLayer"
+	_shop_layer.layer = 50
+	add_child(_shop_layer)
+	_shop_window = preload("res://scripts/ui/shop_window.gd").new()
+	_shop_window.back_requested.connect(_on_shop_closed)
+	_shop_window.exit_requested.connect(_on_shop_closed)
+	_shop_layer.add_child(_shop_window)
+
+
+## 侧栏商店按钮：直接打开独立商店页；返回/Esc/关闭都回到农场。
 func _open_shop() -> void:
 	close()
+	_close_buildings()
 	if is_instance_valid(_workbench) and _workbench.visible:
 		_workbench.close()
-	_ensure_buildings_layer()
-	_buildings_layer.visible = true
-	_building_hub.open_building("shop")
+	_ensure_shop_layer()
+	_shop_layer.visible = true
+	_shop_window.open()
+
+
+func _on_shop_closed() -> void:
+	if is_instance_valid(_shop_window):
+		_shop_window.close()
+	if is_instance_valid(_shop_layer):
+		_shop_layer.visible = false
+
+
+func _close_shop() -> void:
+	if not is_instance_valid(_shop_layer) or not _shop_layer.visible:
+		return
+	_on_shop_closed()
 
 
 func _on_buildings_closed() -> void:
@@ -233,6 +263,7 @@ func _close_buildings() -> void:
 func _open_workbench() -> void:
 	close()
 	_close_buildings()
+	_close_shop()
 	if not is_instance_valid(_workbench):
 		var layer := CanvasLayer.new()
 		layer.name = "CookingLayer"
