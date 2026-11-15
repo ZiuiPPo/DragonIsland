@@ -1,64 +1,71 @@
 extends Control
-## 存档界面：显示唯一的存档，提供读取 / 删除 / 返回。
-##
-## 场景切换不在这里做：读取成功后发 load_requested，由 scene_handler 跳到农场；
-## 返回时发 back_pressed，由 scene_handler 切回主菜单。
+## 多存档界面：固定 SLOT_COUNT 个槽位，支持读取、新建、覆盖新建、删除。
 
 signal back_pressed()
-signal load_requested()
+signal new_game_requested(slot: int)
+signal load_requested(slot: int)
 
-@onready var _slot_panel: PanelContainer = %SlotPanel
-@onready var _empty_panel: Control = %EmptyPanel
-@onready var _slot_meta: Label = %SlotMeta
-@onready var _slot_time: Label = %SlotTime
-@onready var _load_button: Button = %LoadButton
-@onready var _delete_button: Button = %DeleteButton
-@onready var _back_button: Button = %BackButton
+const MODE_LOAD: int = 0
+const MODE_NEW: int = 1
+const CARD_SCENE: PackedScene = preload("res://scenes/ui/save_slot_card.tscn")
+
+@onready var _title: Label = %Title
+@onready var _subtitle: Label = %Subtitle
+@onready var _card_box: HBoxContainer = %CardBox
 @onready var _hint: Label = %Hint
-@onready var _confirm_delete: ConfirmationDialog = %ConfirmDelete
+@onready var _back_button: Button = %BackButton
+@onready var _confirm: ConfirmationDialog = %ConfirmDialog
+
+var mode: int = MODE_LOAD
+var _pending_action: Callable = Callable()
 
 
 func _ready() -> void:
-	_load_button.pressed.connect(_on_load_pressed)
-	_delete_button.pressed.connect(_on_delete_pressed)
 	_back_button.pressed.connect(_on_back_pressed)
-	_confirm_delete.confirmed.connect(_on_delete_confirmed)
+	_confirm.confirmed.connect(_on_confirm)
 	SaveManager.save_changed.connect(_refresh)
 	_refresh()
 
 
-func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("ui_cancel") and not _confirm_delete.visible:
-		_on_back_pressed()
-		get_viewport().set_input_as_handled()
+func set_mode(value: int) -> void:
+	mode = value
+	if mode == MODE_NEW:
+		_title.text = "开始新游戏"
+		_subtitle.text = "选择一个槽位开始；覆盖已有存档会先确认"
+	else:
+		_title.text = "读取存档"
+		_subtitle.text = "选择一个已保存的农场进度"
+	_refresh()
 
 
-## 给 scene_handler 在跳转失败时显示提示用
 func show_message(text: String) -> void:
 	_hint.text = text
 
 
-# ---------------- 刷新显示 ----------------
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel") and not _confirm.visible:
+		_on_back_pressed()
+		get_viewport().set_input_as_handled()
+
+
+# ---------------- 列表 ----------------
 
 func _refresh() -> void:
-	var summary := SaveManager.get_save_summary()
-	var exists := bool(summary.get("exists", false))
-
-	_slot_panel.visible = exists
-	_empty_panel.visible = not exists
-	_load_button.disabled = not exists
-	_delete_button.disabled = not exists
-
-	if not exists:
-		_hint.text = "开始一段农场生活后，回到这里就能读取进度"
+	if not is_node_ready():
 		return
+	for child in _card_box.get_children():
+		_card_box.remove_child(child)
+		child.queue_free()
 
-	_slot_meta.text = "金币 %d · 员工 %d 名" % [
-		int(summary.get("gold", 0)),
-		int(summary.get("staff_count", 0)),
-	]
-	_slot_time.text = "保存于 %s" % _format_time(String(summary.get("saved_at", "")))
-	_hint.text = "单存档模式 · 共 1 个槽位"
+	for summary in SaveManager.get_all_slot_summaries():
+		var card := CARD_SCENE.instantiate() as PanelContainer
+		_card_box.add_child(card)
+		card.call("setup", summary, mode)
+		card.connect("primary_pressed", _on_primary_pressed)
+		card.connect("delete_requested", _on_delete_requested)
+
+	var used := SaveManager.get_used_slot_count()
+	_hint.text = "已用 %d/%d 个存档位" % [used, SaveManager.SLOT_COUNT]
 
 
 func _format_time(raw: String) -> String:
@@ -70,24 +77,52 @@ func _format_time(raw: String) -> String:
 	return text
 
 
-# ---------------- 按钮 ----------------
+# ---------------- 操作 ----------------
 
-func _on_load_pressed() -> void:
-	if not SaveManager.load_save():
-		_refresh()
-		_hint.text = "存档读取失败，文件可能损坏"
+func _on_primary_pressed(slot: int) -> void:
+	var summary := SaveManager.get_slot_summary(slot)
+	if mode == MODE_NEW:
+		if bool(summary.get("exists", false)):
+			_ask(
+				"覆盖存档",
+				"存档位 %d 已有进度，覆盖后会清除原来的农场数据。\n确定要覆盖吗？" % slot,
+				func() -> void: new_game_requested.emit(slot)
+			)
+		else:
+			new_game_requested.emit(slot)
 		return
-	load_requested.emit()
+
+	if not bool(summary.get("can_load", false)):
+		_hint.text = "这个存档位不能读取"
+		return
+	load_requested.emit(slot)
 
 
-func _on_delete_pressed() -> void:
-	if SaveManager.has_save():
-		_confirm_delete.popup_centered()
+func _on_delete_requested(slot: int) -> void:
+	var summary := SaveManager.get_slot_summary(slot)
+	if not bool(summary.get("exists", false)):
+		return
+	_ask(
+		"删除存档",
+		"确定删除存档位 %d 的进度吗？\n删除后无法恢复。" % slot,
+		func() -> void:
+			SaveManager.delete_slot(slot)
+			_hint.text = "存档位 %d 已删除" % slot
+	)
 
 
-func _on_delete_confirmed() -> void:
-	SaveManager.delete_save()
-	_hint.text = "存档已删除"
+func _ask(title: String, text: String, action: Callable) -> void:
+	_pending_action = action
+	_confirm.title = title
+	_confirm.dialog_text = text
+	_confirm.popup_centered()
+
+
+func _on_confirm() -> void:
+	if _pending_action.is_valid():
+		_pending_action.call()
+	_pending_action = Callable()
+	_refresh()
 
 
 func _on_back_pressed() -> void:

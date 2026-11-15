@@ -1,15 +1,14 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/save_menu.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://btcngsxbrkq0k" path="res://assets/start/startback.png" id="2_back"]
-[ext_resource type="Texture2D" uid="uid://bjih7m7adouux" path="res://assets/icons/hud/coin.png" id="3_coin"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
 content_margin_left = 0.0
 content_margin_top = 0.0
 content_margin_right = 0.0
 content_margin_bottom = 0.0
-bg_color = Color(0.18, 0.14, 0.09, 0.95)
+bg_color = Color(0.18, 0.14, 0.09, 0.96)
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
@@ -22,18 +21,6 @@ corner_radius_bottom_left = 20
 shadow_color = Color(0, 0, 0, 0.45)
 shadow_size = 18
 shadow_offset = Vector2(0, 8)
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_slot"]
-bg_color = Color(0.31, 0.25, 0.16, 0.95)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.72, 0.6, 0.38, 0.65)
-corner_radius_top_left = 14
-corner_radius_top_right = 14
-corner_radius_bottom_right = 14
-corner_radius_bottom_left = 14
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_normal"]
 content_margin_left = 14.0
@@ -83,22 +70,6 @@ corner_radius_top_right = 10
 corner_radius_bottom_right = 10
 corner_radius_bottom_left = 10
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_delete_normal"]
-content_margin_left = 14.0
-content_margin_top = 8.0
-content_margin_right = 14.0
-content_margin_bottom = 8.0
-bg_color = Color(0.45, 0.24, 0.18, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.78, 0.48, 0.36, 1)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
-
 [node name="SaveMenu" type="Control"]
 layout_mode = 3
 anchors_preset = 15
@@ -136,145 +107,52 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="Panel" type="PanelContainer" parent="Center"]
-custom_minimum_size = Vector2(820, 520)
+custom_minimum_size = Vector2(960, 600)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
 [node name="Margin" type="MarginContainer" parent="Center/Panel"]
 layout_mode = 2
-theme_override_constants/margin_left = 36
-theme_override_constants/margin_top = 30
-theme_override_constants/margin_right = 36
-theme_override_constants/margin_bottom = 30
+theme_override_constants/margin_left = 30
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 30
+theme_override_constants/margin_bottom = 24
 
 [node name="VBox" type="VBoxContainer" parent="Center/Panel/Margin"]
 layout_mode = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 10
 
 [node name="Title" type="Label" parent="Center/Panel/Margin/VBox"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.94, 0.78, 1)
 theme_override_colors/font_outline_color = Color(0.12, 0.08, 0.03, 1)
 theme_override_constants/outline_size = 5
-theme_override_font_sizes/font_size = 36
-text = "存档"
+theme_override_font_sizes/font_size = 34
+text = "读取存档"
 
 [node name="Subtitle" type="Label" parent="Center/Panel/Margin/VBox"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.84, 0.68, 0.8)
-theme_override_font_sizes/font_size = 16
-text = "读取上次保存的农场进度"
+theme_override_font_sizes/font_size = 15
+text = "选择一个已保存的农场进度"
 
 [node name="Line" type="HSeparator" parent="Center/Panel/Margin/VBox"]
 layout_mode = 2
 
-[node name="SlotPanel" type="PanelContainer" parent="Center/Panel/Margin/VBox"]
+[node name="CardBox" type="HBoxContainer" parent="Center/Panel/Margin/VBox"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 160)
+custom_minimum_size = Vector2(0, 250)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_slot")
-
-[node name="SlotMargin" type="MarginContainer" parent="Center/Panel/Margin/VBox/SlotPanel"]
-layout_mode = 2
-theme_override_constants/margin_left = 22
-theme_override_constants/margin_top = 18
-theme_override_constants/margin_right = 22
-theme_override_constants/margin_bottom = 18
-
-[node name="Row" type="HBoxContainer" parent="Center/Panel/Margin/VBox/SlotPanel/SlotMargin"]
-layout_mode = 2
-theme_override_constants/separation = 20
-
-[node name="Icon" type="TextureRect" parent="Center/Panel/Margin/VBox/SlotPanel/SlotMargin/Row"]
-custom_minimum_size = Vector2(72, 72)
-layout_mode = 2
-size_flags_vertical = 4
-texture = ExtResource("3_coin")
-expand_mode = 1
-stretch_mode = 5
-
-[node name="Info" type="VBoxContainer" parent="Center/Panel/Margin/VBox/SlotPanel/SlotMargin/Row"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 4
-theme_override_constants/separation = 6
-
-[node name="SlotTitle" type="Label" parent="Center/Panel/Margin/VBox/SlotPanel/SlotMargin/Row/Info"]
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.95, 0.82, 1)
-theme_override_font_sizes/font_size = 24
-text = "农场存档"
-
-[node name="SlotMeta" type="Label" parent="Center/Panel/Margin/VBox/SlotPanel/SlotMargin/Row/Info"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.87, 0.58, 1)
-theme_override_font_sizes/font_size = 18
-text = "金币 0 · 员工 0 名"
-
-[node name="SlotTime" type="Label" parent="Center/Panel/Margin/VBox/SlotPanel/SlotMargin/Row/Info"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.86, 0.79, 0.65, 0.7)
-theme_override_font_sizes/font_size = 13
-text = "保存于 未知时间"
-
-[node name="Actions" type="VBoxContainer" parent="Center/Panel/Margin/VBox/SlotPanel/SlotMargin/Row"]
-layout_mode = 2
-size_flags_vertical = 4
-theme_override_constants/separation = 8
-
-[node name="LoadButton" type="Button" parent="Center/Panel/Margin/VBox/SlotPanel/SlotMargin/Row/Actions"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(150, 44)
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.96, 0.86, 1)
-theme_override_font_sizes/font_size = 17
-theme_override_styles/normal = SubResource("StyleBoxFlat_btn_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_pressed")
-text = "读取存档"
-
-[node name="DeleteButton" type="Button" parent="Center/Panel/Margin/VBox/SlotPanel/SlotMargin/Row/Actions"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(150, 38)
-layout_mode = 2
-theme_override_colors/font_color = Color(0.98, 0.86, 0.8, 1)
-theme_override_font_sizes/font_size = 15
-theme_override_styles/normal = SubResource("StyleBoxFlat_delete_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_pressed")
-text = "删除存档"
-
-[node name="EmptyPanel" type="VBoxContainer" parent="Center/Panel/Margin/VBox"]
-unique_name_in_owner = true
-visible = false
-custom_minimum_size = Vector2(0, 160)
-layout_mode = 2
-size_flags_vertical = 3
-theme_override_constants/separation = 10
-alignment = 1
-
-[node name="EmptyTitle" type="Label" parent="Center/Panel/Margin/VBox/EmptyPanel"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.96, 0.89, 0.74, 0.9)
-theme_override_font_sizes/font_size = 26
-text = "暂无存档"
-horizontal_alignment = 1
-
-[node name="EmptyHint" type="Label" parent="Center/Panel/Margin/VBox/EmptyPanel"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.86, 0.79, 0.65, 0.65)
-theme_override_font_sizes/font_size = 15
-text = "先在主菜单点「新游戏」开始一段新的农场生活"
-horizontal_alignment = 1
+theme_override_constants/separation = 12
 
 [node name="Hint" type="Label" parent="Center/Panel/Margin/VBox"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.95, 0.84, 0.62, 0.85)
 theme_override_font_sizes/font_size = 14
-text = "单存档模式 · 共 1 个槽位"
+text = "已用 0/3 个存档位"
 
 [node name="Spacer" type="Control" parent="Center/Panel/Margin/VBox"]
 layout_mode = 2
@@ -288,7 +166,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.86, 0.79, 0.65, 0.55)
 theme_override_font_sizes/font_size = 13
-text = "农场里每 30 秒自动保存，回主菜单前也会保存"
+text = "农场的自动保存会写入当前选中的槽位"
 vertical_alignment = 1
 
 [node name="BackButton" type="Button" parent="Center/Panel/Margin/VBox/Footer"]
@@ -302,9 +180,7 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_pressed")
 text = "返回主菜单"
 
-[node name="ConfirmDelete" type="ConfirmationDialog" parent="."]
+[node name="ConfirmDialog" type="ConfirmationDialog" parent="."]
 unique_name_in_owner = true
-title = "删除存档"
-dialog_text = "确定要删除这个存档吗？删除后无法恢复。"
-ok_button_text = "删除"
-cancel_button_text = "取消"
+title = "确认"
+size = Vector2i(380, 150)

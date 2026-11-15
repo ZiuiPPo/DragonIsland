@@ -16,14 +16,20 @@ func _ready() -> void:
 	_refresh_save_state()
 
 
-## 让玩家在点「存档」之前就能看到有没有进度
+## 让玩家在点「读取存档」之前就能看到存档位使用情况
 func _refresh_save_state() -> void:
-	var summary := SaveManager.get_save_summary()
+	var used := SaveManager.get_used_slot_count()
+	var summary := SaveManager.get_latest_summary()
+	if used == 0:
+		_save_state.text = "暂无存档 · 共 %d 个存档位" % SaveManager.SLOT_COUNT
+		return
 	if not bool(summary.get("exists", false)):
-		_save_state.text = "暂无存档"
+		_save_state.text = "已用 %d/%d · 没有可读取的存档" % [used, SaveManager.SLOT_COUNT]
 		return
 
-	_save_state.text = "上次存档：%d 金币 · %d 名员工" % [
+	_save_state.text = "已用 %d/%d · 最近：金币 %d · 员工 %d" % [
+		used,
+		SaveManager.SLOT_COUNT,
 		int(summary.get("gold", 0)),
 		int(summary.get("staff_count", 0)),
 	]
