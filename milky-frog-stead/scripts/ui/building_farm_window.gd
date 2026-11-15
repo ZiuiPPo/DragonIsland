@@ -1,40 +1,53 @@
 extends "res://scripts/ui/building_window_base.gd"
 ## 农田建筑独立页面。
 ##
-## 页面结构：
-##   左边是 8 块地（4×2）的田地，右边是种子商店 / 产出统计 / 操作说明。
-##   玩家点空地锄地，选好种子后点已锄地播种，跨天后成熟，点成熟地块收获。
+## 画面目标（参考星露谷/经营游戏的田地读法）：
+##   · 一整片连续的土地，而不是几块大瓷砖浮在草上；
+##   · 作物按生长阶段换帧、水平垂直都居中、占满格子的可视区域；
+##   · 成长进度用一条很短的自绘圆角细条，成熟收成金色「可收」小徽章 + 轻微呼吸；
+##   · 未成熟/成熟的状态靠画面本身就能读出来，不需要一直盯着难看的灰色进度条。
 ##
-## 数据都在 FarmState autoload 里，本页只负责「画出来 + 把点击转成数据操作」。
-## 收获统一走 FarmOutput → Inventory，所以仓库/合成/存档都能直接认到产物。
+## 数据仍在 FarmState autoload，收获统一走 FarmOutput → Inventory。
 
-const PLOT_COLUMNS: int = 4
-const PLOT_ROWS: int = 2
+const PLOT_COLUMNS: int = 6
+const PLOT_ROWS: int = 3
 const PLOT_COUNT: int = PLOT_COLUMNS * PLOT_ROWS
-const PLOT_SIZE := Vector2(168, 168)
-const PLOT_GAP: float = 20.0
+const PLOT_SIZE := Vector2(112, 112)
+const PLOT_GAP := 10.0
+const GRID_WIDTH: float = PLOT_COLUMNS * PLOT_SIZE.x + (PLOT_COLUMNS - 1) * PLOT_GAP
+const GRID_HEIGHT: float = PLOT_ROWS * PLOT_SIZE.y + (PLOT_ROWS - 1) * PLOT_GAP
 const GRASS_TEXTURE := preload("res://assets/tilesets/grass.png")
 const SOIL_TEXTURE := preload("res://assets/tilesets/soil.png")
-const PLANT_FRAME_HEIGHT: float = 64.0
+const GRASS_TUFT_TEXTURE := preload("res://assets/sprites/decorations/grass_tuft.png")
+const PLANT_HEIGHT_RATIO: float = 0.68
+const UI_REFRESH_INTERVAL: float = 0.12
+const GRID_MARGIN: float = 12.0
 
 var _field_view: Control
-var _field_plot_root: Control
+var _grid_root: Control
+var _hover_panel: Panel
 var _plot_buttons: Array[Button] = []
 var _plot_floors: Array[TextureRect] = []
-var _plant_sprites: Array[Sprite2D] = []
-var _progress_bars: Array[ProgressBar] = []
-var _ripe_labels: Array[Label] = []
+var _plant_sprites: Array = []
+var _growth_bars: Array[Control] = []
+var _ripe_badges: Array[Panel] = []
 var _seed_rows: Dictionary = {}
+var _seed_icon: TextureRect
+var _seed_preview_label: Label
 var _plot_info: Label
-var _status_label: Label
-var _inventory_label: Label
-var _today_label: Label
 var _harvest_all_button: Button
+var _stat_labels: Dictionary = {}
+var _today_label: Label
+var _inventory_label: Label
 var _hover_plot: int = -1
 var _live_accum: float = 0.0
-var _pulse_time: float = 0.0
+var _anim_time: float = 0.0
+var _decor_built: bool = false
 var _grass_atlas: AtlasTexture
 var _soil_atlas: AtlasTexture
+var _frame_bbox_cache: Dictionary = {}
+var _crop_scale_cache: Dictionary = {}
+var _rng := RandomNumberGenerator.new()
 
 
 # ---------------- 基类接口 ----------------
@@ -44,116 +57,119 @@ func page_title() -> String:
 
 
 func page_hint() -> String:
-	return "点空地锄地 · 选种子播种 · 跨天成熟 · 点成熟地块收获 · Esc 返回建筑"
+	return "点空地翻土 · 选好种子点土播种 · 跨天成熟 · 点成熟作物收获 · Esc 返回建筑"
 
 
 func _build_body(parent: VBoxContainer) -> void:
-	# 草/土地贴图都是 11x5 的自动地形图集，第 0 块是带描边的转角。
-	# 做整片底色要用「全填充」那格（第 4 行第 0 列，索引 44），平铺才没有网格线。
+	if FarmState.PLOT_COUNT != PLOT_COUNT:
+		push_warning("[农田页] 页面按 %d 块地绘制，但 FarmState 是 %d 块" % [PLOT_COUNT, FarmState.PLOT_COUNT])
+	_rng.seed = 20261115
 	_grass_atlas = UI.tile_texture(GRASS_TEXTURE, 44)
 	_soil_atlas = UI.tile_texture(SOIL_TEXTURE, 44)
+	_plant_sprites.resize(PLOT_COUNT)
 
 	var main := HBoxContainer.new()
-	main.add_theme_constant_override("separation", 18)
+	main.add_theme_constant_override("separation", 16)
 	main.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	parent.add_child(main)
 
-	# ---------- 左边：田地 ----------
+	_build_field_area(main)
+	_build_side_panel(main)
+
+	FarmState.changed.connect(_refresh)
+
+
+# ---------------- 左边：田地 ----------------
+
+func _build_field_area(main: HBoxContainer) -> void:
 	var left := VBoxContainer.new()
 	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	left.add_theme_constant_override("separation", 8)
+	left.add_theme_constant_override("separation", 10)
 	main.add_child(left)
 
 	var field_panel := PanelContainer.new()
 	field_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	field_panel.add_theme_stylebox_override("panel", UI.dark_style(Color(0.13, 0.19, 0.10, 1.0)))
+	field_panel.add_theme_stylebox_override("panel", UI.dark_style(Color("2f3d1f")))
 	left.add_child(field_panel)
 
 	_field_view = Control.new()
 	_field_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_field_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_field_view.clip_contents = true
 	_field_view.custom_minimum_size = Vector2(0, 470)
-	_field_view.resized.connect(_layout_plots)
+	_field_view.clip_contents = true
+	_field_view.resized.connect(_layout_field)
 	field_panel.add_child(_field_view)
 
-	var grass_rect := UI.tiled_rect(GRASS_TEXTURE, 44)
-	_field_view.add_child(grass_rect)
+	_field_view.add_child(UI.tiled_rect(GRASS_TEXTURE, 44))
 
-	_field_plot_root = Control.new()
-	_field_plot_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_field_plot_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_field_view.add_child(_field_plot_root)
+	_grid_root = Control.new()
+	_grid_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_field_view.add_child(_grid_root)
 
-	_plant_sprites.resize(PLOT_COUNT)
+	_field_view.add_child(UI.vignette(0.26))
+
 	for i in range(PLOT_COUNT):
 		_build_plot(i)
 
-	var info_row := HBoxContainer.new()
-	info_row.add_theme_constant_override("separation", 12)
-	left.add_child(info_row)
-	_plot_info = UI.wrapped_label(
-		"把鼠标移到地块上查看状态；点空地锄地，选好种子后点击已锄地播种，成熟后点击收获。", 14)
+	_hover_panel = Panel.new()
+	_hover_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var hover_style := StyleBoxFlat.new()
+	hover_style.bg_color = Color(1.0, 0.94, 0.62, 0.10)
+	hover_style.border_color = Color(1.0, 0.88, 0.42, 0.95)
+	hover_style.set_border_width_all(3)
+	hover_style.set_corner_radius_all(12)
+	_hover_panel.add_theme_stylebox_override("panel", hover_style)
+	_hover_panel.visible = false
+	_grid_root.add_child(_hover_panel)
+
+	# 田地下面一条信息栏：当前种子 + 地块说明 + 一键收获
+	var info_bar := HBoxContainer.new()
+	info_bar.add_theme_constant_override("separation", 12)
+	left.add_child(info_bar)
+
+	var seed_card := PanelContainer.new()
+	seed_card.add_theme_stylebox_override("panel", UI.card_style())
+	info_bar.add_child(seed_card)
+	var seed_row := HBoxContainer.new()
+	seed_row.add_theme_constant_override("separation", 8)
+	seed_card.add_child(seed_row)
+	var seed_slot := PanelContainer.new()
+	seed_slot.custom_minimum_size = Vector2(38, 38)
+	seed_slot.add_theme_stylebox_override("panel", UI.icon_slot_style())
+	seed_row.add_child(seed_slot)
+	_seed_icon = TextureRect.new()
+	_seed_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_seed_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_seed_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_seed_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	seed_slot.add_child(_seed_icon)
+	_seed_preview_label = UI.label("当前种子", 14, UI.INK)
+	seed_row.add_child(_seed_preview_label)
+
+	_plot_info = UI.wrapped_label("把鼠标移到地块上查看状态。", 13, UI.INK_SOFT)
 	_plot_info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	info_row.add_child(_plot_info)
-	_harvest_all_button = UI.button("一键收获", 15, 40)
-	_harvest_all_button.custom_minimum_size.x = 120
+	info_bar.add_child(_plot_info)
+
+	_harvest_all_button = UI.primary_button("一键收获", 14, 42)
+	_harvest_all_button.custom_minimum_size.x = 112
 	_harvest_all_button.pressed.connect(harvest_all)
-	info_row.add_child(_harvest_all_button)
+	info_bar.add_child(_harvest_all_button)
 
-	# ---------- 右边：种子商店 + 统计 ----------
-	var right := VBoxContainer.new()
-	right.custom_minimum_size.x = 350
-	right.add_theme_constant_override("separation", 8)
-	main.add_child(right)
-
-	right.add_child(UI.title_label("种子商店", 22))
-	var seed_hint := UI.wrapped_label("点一行选种；买种子花蛙币，播种会从仓库扣 1 颗。", 13)
-	right.add_child(seed_hint)
-	for crop in FarmState.crops():
-		_build_seed_row(right, crop)
-
-	right.add_child(HSeparator.new())
-	_status_label = UI.label("", 15, UI.TEXT_DARK)
-	right.add_child(_status_label)
-
-	right.add_child(UI.title_label("本页产出（今天）", 18))
-	_today_label = UI.wrapped_label("今天还没有产出", 14)
-	right.add_child(_today_label)
-
-	right.add_child(UI.title_label("仓库里的作物", 18))
-	_inventory_label = UI.wrapped_label("还没有收获过作物", 14)
-	right.add_child(_inventory_label)
-
-	var spacer := Control.new()
-	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	right.add_child(spacer)
-	right.add_child(UI.wrapped_label(
-		"作物按游戏日生长：萝卜/生菜 1 天，小麦/番茄 2 天。可以在侧栏「时间」菜单里推进时段来跨天。", 13))
-
-	FarmState.changed.connect(_refresh)
-
-
-# ---------------- 构建 ----------------
 
 func _build_plot(index: int) -> void:
 	var button := Button.new()
 	button.focus_mode = Control.FOCUS_NONE
 	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	button.custom_minimum_size = PLOT_SIZE
-	button.size = PLOT_SIZE
+	button.flat = true
 	var empty := StyleBoxEmpty.new()
-	var hover := UI.card_style(true)
-	hover.bg_color = Color(1.0, 0.95, 0.55, 0.10)
 	button.add_theme_stylebox_override("normal", empty)
-	button.add_theme_stylebox_override("hover", hover)
-	button.add_theme_stylebox_override("pressed", hover)
+	button.add_theme_stylebox_override("hover", empty)
+	button.add_theme_stylebox_override("pressed", empty)
 	button.add_theme_stylebox_override("focus", empty)
-	button.tooltip_text = "空地：点击锄地"
 	button.pressed.connect(_on_plot_pressed.bind(index))
 	button.mouse_entered.connect(_on_plot_hovered.bind(index, true))
 	button.mouse_exited.connect(_on_plot_hovered.bind(index, false))
-	_field_plot_root.add_child(button)
+	_grid_root.add_child(button)
 	_plot_buttons.append(button)
 
 	var floor_rect := TextureRect.new()
@@ -166,38 +182,86 @@ func _build_plot(index: int) -> void:
 	button.add_child(floor_rect)
 	_plot_floors.append(floor_rect)
 
-	# 地块描边画在地板上面：不锄地也能看出这里有 8 块地，而不是一片糊在一起的草
+	# 每块地一圈很淡的描边：未翻土时也能看出有 18 个格子，且不会像深色底板那么重
 	var frame := Panel.new()
 	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	frame.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var frame_style := StyleBoxFlat.new()
-	frame_style.bg_color = Color(0.0, 0.0, 0.0, 0.0)
-	frame_style.border_color = Color(0.38, 0.28, 0.15, 0.95)
-	frame_style.set_border_width_all(3)
+	frame_style.bg_color = Color(0, 0, 0, 0)
+	frame_style.border_color = Color(0.18, 0.14, 0.08, 0.30)
+	frame_style.set_border_width_all(2)
 	frame_style.set_corner_radius_all(10)
 	frame.add_theme_stylebox_override("panel", frame_style)
 	button.add_child(frame)
 
-	var bar := UI.progress_bar(Color(0.55, 0.85, 0.35), 14.0)
-	bar.position = Vector2(16, PLOT_SIZE.y - 30)
-	bar.size = Vector2(PLOT_SIZE.x - 32, 14)
+
+	var bar := UI.growth_bar(Color("7ed24f"), 56.0, 5.0)
+	bar.call("setup", Color("7ed24f"), Color(0.22, 0.16, 0.09, 0.78))
+	bar.position = Vector2(PLOT_SIZE.x * 0.5 - 28.0, PLOT_SIZE.y * 0.85)
 	bar.visible = false
 	button.add_child(bar)
-	_progress_bars.append(bar)
+	_growth_bars.append(bar)
 
-	var ripe_label := UI.label("可收", 15, Color(1.0, 0.88, 0.32, 1.0))
-	ripe_label.add_theme_color_override("font_outline_color", Color(0.08, 0.05, 0.02, 1.0))
-	ripe_label.add_theme_constant_override("outline_size", 4)
-	ripe_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	ripe_label.position = Vector2(PLOT_SIZE.x * 0.5 - 32, 6)
-	ripe_label.size = Vector2(64, 24)
-	ripe_label.visible = false
-	ripe_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	button.add_child(ripe_label)
-	_ripe_labels.append(ripe_label)
+	var badge := Panel.new()
+	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var badge_style := StyleBoxFlat.new()
+	badge_style.bg_color = Color("f2cd55")
+	badge_style.border_color = Color("8a5a14")
+	badge_style.set_border_width_all(2)
+	badge_style.set_corner_radius_all(9)
+	badge.add_theme_stylebox_override("panel", badge_style)
+	badge.size = Vector2(46, 18)
+	badge.position = Vector2(PLOT_SIZE.x * 0.5 - 23.0, 5.0)
+	badge.pivot_offset = Vector2(23, 9)
+	var badge_label := UI.label("可收", 11, Color("3f2b06"))
+	badge_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	badge_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	badge_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	badge_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	badge.add_child(badge_label)
+	badge.visible = false
+	button.add_child(badge)
+	_ripe_badges.append(badge)
 
 
-func _build_seed_row(parent: VBoxContainer, crop: CropData) -> void:
+# ---------------- 右边：商店和统计 ----------------
+
+func _build_side_panel(main: HBoxContainer) -> void:
+	var right := VBoxContainer.new()
+	right.custom_minimum_size.x = 352
+	right.add_theme_constant_override("separation", 8)
+	main.add_child(right)
+
+	right.add_child(UI.title_label("种子商店", 22))
+	right.add_child(UI.wrapped_label("点一行选种子；播种会从仓库扣 1 颗，缺种子时在这里买。", 12))
+	for crop in FarmState.crops():
+		_build_seed_card(right, crop)
+
+	right.add_child(UI.divider())
+	right.add_child(UI.label("田地概况", 16, UI.INK))
+	var stats := HBoxContainer.new()
+	stats.add_theme_constant_override("separation", 6)
+	right.add_child(stats)
+	_stat_labels["growing"] = _add_stat_chip(stats, "生长中 0", UI.GREEN)
+	_stat_labels["ripe"] = _add_stat_chip(stats, "可收 0", UI.GOLD_DARK)
+	_stat_labels["idle"] = _add_stat_chip(stats, "空闲 0", Color("7a6a4a"))
+
+	right.add_child(UI.label("今天产出", 16, UI.INK))
+	_today_label = UI.wrapped_label("今天还没有产出", 13)
+	right.add_child(_today_label)
+
+	right.add_child(UI.label("仓库作物", 16, UI.INK))
+	_inventory_label = UI.wrapped_label("还没有收获过作物", 13)
+	right.add_child(_inventory_label)
+
+	var spacer := Control.new()
+	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	right.add_child(spacer)
+	right.add_child(UI.wrapped_label(
+		"作物按游戏日生长：萝卜/生菜 1 天，小麦/番茄 2 天。可以在侧栏「时间」菜单里推进时段来跨天。", 12))
+
+
+func _build_seed_card(parent: VBoxContainer, crop: CropData) -> void:
 	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", UI.card_style(false))
 	parent.add_child(panel)
@@ -206,51 +270,91 @@ func _build_seed_row(parent: VBoxContainer, crop: CropData) -> void:
 	row.add_theme_constant_override("separation", 8)
 	panel.add_child(row)
 
-	var select_button := UI.button("", 15, 54)
-	select_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	var select_button := UI.ghost_button("", 14, 58)
 	select_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	select_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	select_button.icon = ItemDB.icon(String(crop.seed_item_id))
 	select_button.expand_icon = true
-	select_button.add_theme_constant_override("icon_max_width", 34)
+	select_button.add_theme_constant_override("icon_max_width", 38)
 	select_button.pressed.connect(select_seed.bind(String(crop.id)))
 	row.add_child(select_button)
 
-	var buy_button := UI.button("买 1", 13, 54)
-	buy_button.custom_minimum_size.x = 86
+	var right_column := VBoxContainer.new()
+	right_column.custom_minimum_size.x = 92
+	right_column.add_theme_constant_override("separation", 3)
+	row.add_child(right_column)
+	var price_label := UI.label("%d 蛙币" % int(crop.buy_price), 12, UI.GOLD_DARK)
+	price_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	right_column.add_child(price_label)
+	var buy_button := UI.primary_button("买 1", 13, 32)
+	buy_button.custom_minimum_size.x = 88
 	buy_button.pressed.connect(buy_seed.bind(String(crop.id)))
-	row.add_child(buy_button)
+	right_column.add_child(buy_button)
 
 	_seed_rows[String(crop.id)] = {
 		"panel": panel,
 		"select": select_button,
 		"buy": buy_button,
-		"name": String(crop.display_name),
 	}
+
+
+func _add_stat_chip(parent: HBoxContainer, text_value: String, color: Color) -> Label:
+	var chip := UI.chip(text_value, color, 12)
+	parent.add_child(chip)
+	return chip.get_child(0) as Label
 
 
 # ---------------- 布局 ----------------
 
-func _layout_plots() -> void:
+func _layout_field() -> void:
 	if _field_view == null or _plot_buttons.is_empty():
 		return
 	var view_size := _field_view.size
-	# 窗口刚打开、还没排版时 size 可能是 0，等 resized 再摆
-	if view_size.x < 50.0 or view_size.y < 50.0:
+	if view_size.x < 120.0 or view_size.y < 120.0:
 		return
-	var field_size := Vector2(
-		PLOT_COLUMNS * PLOT_SIZE.x + (PLOT_COLUMNS - 1) * PLOT_GAP,
-		PLOT_ROWS * PLOT_SIZE.y + (PLOT_ROWS - 1) * PLOT_GAP)
 	var origin := Vector2(
-		maxf(16.0, (view_size.x - field_size.x) * 0.5),
-		maxf(16.0, (view_size.y - field_size.y) * 0.5))
+		maxf(GRID_MARGIN, (view_size.x - GRID_WIDTH) * 0.5),
+		maxf(GRID_MARGIN, (view_size.y - GRID_HEIGHT) * 0.5))
+	_grid_root.position = origin
 	for i in range(_plot_buttons.size()):
 		var column := i % PLOT_COLUMNS
 		var row := floori(float(i) / float(PLOT_COLUMNS))
 		var button: Button = _plot_buttons[i]
-		button.position = origin + Vector2(
+		button.position = Vector2(
 			column * (PLOT_SIZE.x + PLOT_GAP),
 			row * (PLOT_SIZE.y + PLOT_GAP))
 		button.size = PLOT_SIZE
+	if not _decor_built:
+		_decor_built = true
+		_build_decorations(view_size)
+
+
+## 田地边缘撒一点草簇，避免"一块菜地贴在一片纯色草皮上"的空旷感。
+func _build_decorations(view_size: Vector2) -> void:
+	var grid_rect := Rect2(
+		_grid_root.position - Vector2(10, 10),
+		Vector2(GRID_WIDTH + 20.0, GRID_HEIGHT + 20.0))
+	var placed := 0
+	var attempts := 0
+	while placed < 14 and attempts < 200:
+		attempts += 1
+		var pos := Vector2(
+			_rng.randf_range(16.0, view_size.x - 16.0),
+			_rng.randf_range(16.0, view_size.y - 16.0))
+		if grid_rect.has_point(pos):
+			continue
+		var tuft := Sprite2D.new()
+		tuft.texture = GRASS_TUFT_TEXTURE
+		tuft.hframes = 4
+		tuft.frame = _rng.randi_range(0, 3)
+		tuft.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		tuft.position = pos
+		var factor := _rng.randf_range(1.8, 3.0)
+		tuft.scale = Vector2(factor, factor)
+		tuft.modulate = Color(0.86, 0.96, 0.72, 0.95)
+		tuft.z_index = 0
+		_field_view.add_child(tuft)
+		placed += 1
 
 
 # ---------------- 交互 ----------------
@@ -262,14 +366,14 @@ func _on_plot_pressed(index: int) -> void:
 	match state:
 		FarmState.State.UNTILLED:
 			if FarmState.till(index):
-				_float_text(index, "锄地", Color(0.95, 0.9, 0.7))
-				show_feedback("第 %d 块地锄好了，选好种子再点一下就能播种。" % (index + 1))
+				_float_text(index, "翻土", Color(0.98, 0.93, 0.72))
+				show_feedback("这块地翻好了，选好种子再点一下播种。")
 		FarmState.State.TILLED:
 			_plant_selected(index)
 		FarmState.State.GROWING:
 			var crop := FarmState.crop_by_id(FarmState.plot_crop_id(index))
-			show_feedback("「%s」还在生长（%d%%）。" % [
-				_crop_name(crop), int(FarmState.growth_progress(index) * 100.0)])
+			show_feedback("「%s」还在生长：%d%%，约需 %d 天。" % [
+				_crop_name(crop), int(FarmState.growth_progress(index) * 100.0), _days_left(index)])
 		FarmState.State.RIPE:
 			harvest(index)
 	_refresh()
@@ -283,8 +387,8 @@ func _plant_selected(index: int) -> void:
 		show_feedback("仓库里没有「%s」种子了，先在右边买 1 颗。" % crop.display_name)
 		return
 	if FarmState.plant(index, String(crop.id)):
-		_float_text(index, "播种", Color(0.8, 0.95, 0.6))
-		show_feedback("第 %d 块地种下了「%s」，%d 天后成熟。" % [index + 1, crop.display_name, crop.grow_days])
+		_float_text(index, "播种", Color(0.75, 0.95, 0.55))
+		show_feedback("种下了「%s」，成熟需要 %d 天。" % [crop.display_name, int(crop.grow_days)])
 
 
 func select_seed(crop_id: String) -> void:
@@ -320,14 +424,14 @@ func harvest(index: int) -> void:
 	var amount := int(result["amount"])
 	var display_name := String(result["display_name"])
 	_float_text(index, "+%d" % amount, Color(1.0, 0.86, 0.3))
-	show_feedback("收获「%s」×%d，已自动进仓库。" % [display_name, amount])
+	show_feedback("收获「%s」×%d，已经放进仓库。" % [display_name, amount])
 	_refresh()
 
 
 func harvest_all() -> Dictionary:
 	var totals := FarmState.harvest_all()
 	if totals.is_empty():
-		show_feedback("现在没有成熟的作物。")
+		show_feedback("现在还没有成熟的作物。")
 		return totals
 	var parts: Array[String] = []
 	for item_id in totals.keys():
@@ -347,8 +451,8 @@ func plot_count() -> int:
 
 func visible_ripe_marker_count() -> int:
 	var count := 0
-	for label in _ripe_labels:
-		if label.visible:
+	for badge in _ripe_badges:
+		if badge.visible:
 			count += 1
 	return count
 
@@ -362,22 +466,20 @@ func _refresh() -> void:
 		_refresh_plot(i)
 	_refresh_seed_rows()
 	_refresh_stats()
+	_refresh_seed_preview()
 	_refresh_plot_info()
 	_harvest_all_button.disabled = FarmState.ripe_count() == 0
 
 
 func _refresh_plot(index: int) -> void:
-	if index < 0 or index >= _plot_buttons.size():
-		return
 	var state := FarmState.plot_state(index)
-	var crop_id := FarmState.plot_crop_id(index)
-	var crop := FarmState.crop_by_id(crop_id)
-
+	var crop := FarmState.crop_by_id(FarmState.plot_crop_id(index))
 	_plot_floors[index].texture = _grass_atlas if state == FarmState.State.UNTILLED else _soil_atlas
 
-	var sprite: Sprite2D = _plant_sprites[index] if index < _plant_sprites.size() else null
-	if (state == FarmState.State.GROWING or state == FarmState.State.RIPE) and crop != null:
-		if sprite == null:
+	var has_plant := crop != null and (state == FarmState.State.GROWING or state == FarmState.State.RIPE)
+	var sprite: Sprite2D = _plant_sprites[index]
+	if has_plant:
+		if sprite == null or not is_instance_valid(sprite):
 			sprite = Sprite2D.new()
 			sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 			sprite.z_index = 2
@@ -386,28 +488,102 @@ func _refresh_plot(index: int) -> void:
 		sprite.visible = true
 		sprite.texture = crop.plant_texture
 		sprite.hframes = maxi(1, int(crop.plant_frames))
-		sprite.modulate = crop.plant_tint
-		var progress := 1.0 if state == FarmState.State.RIPE else FarmState.growth_progress(index)
-		sprite.frame = clampi(roundi(progress * float(sprite.hframes - 1)), 0, sprite.hframes - 1)
-		var frame_height := PLANT_FRAME_HEIGHT
-		if crop.plant_texture != null:
-			frame_height = maxf(float(crop.plant_texture.get_height()), 1.0)
-		var scale_factor := (PLOT_SIZE.y * 0.62) / frame_height
-		sprite.scale = Vector2(scale_factor, scale_factor)
-		sprite.position = Vector2(PLOT_SIZE.x * 0.5, PLOT_SIZE.y * 0.68)
+		sprite.modulate = Color(1, 1, 1, 1)
+		_update_plant_visual(index)
 	else:
-		if sprite != null:
+		if sprite != null and is_instance_valid(sprite):
 			sprite.visible = false
 
-	var bar: ProgressBar = _progress_bars[index]
-	bar.visible = state == FarmState.State.GROWING
-	bar.value = FarmState.growth_progress(index) * 100.0
+	var progress := FarmState.growth_progress(index)
+	var bar: Control = _growth_bars[index]
+	bar.visible = false
+	bar.call("set_progress", progress)
+	_ripe_badges[index].visible = state == FarmState.State.RIPE
+	_ripe_badges[index].modulate.a = 1.0
+	_plot_buttons[index].tooltip_text = _describe_plot(index)
 
-	var ripe_label: Label = _ripe_labels[index]
-	ripe_label.visible = state == FarmState.State.RIPE
 
-	var button: Button = _plot_buttons[index]
-	button.tooltip_text = _describe_plot(index)
+func _update_plant_visual(index: int) -> void:
+	var sprite: Sprite2D = _plant_sprites[index]
+	if sprite == null or not is_instance_valid(sprite):
+		return
+	var crop := FarmState.crop_by_id(FarmState.plot_crop_id(index))
+	if crop == null or crop.plant_texture == null:
+		return
+	var state := FarmState.plot_state(index)
+	var progress := 1.0 if state == FarmState.State.RIPE else FarmState.growth_progress(index)
+	var frame_count := maxi(1, int(crop.plant_frames))
+	sprite.frame = clampi(roundi(progress * float(frame_count - 1)), 0, frame_count - 1)
+	var scale_factor := _crop_scale(crop)
+	sprite.scale = Vector2(scale_factor, scale_factor)
+	var content_offset := _frame_content_offset(crop, sprite.frame)
+	var anchor := Vector2(PLOT_SIZE.x * 0.5, PLOT_SIZE.y * 0.52)
+	sprite.position = anchor - content_offset * scale_factor
+
+
+## 作物贴图每帧的内容包围盒：用来把「植物本体」而不是「空白画布」对准格子中心。
+## 结果缓存，第一次打开窗口时算一次即可（4 张图 × 4 帧 × 32×64）。
+func _frame_bbox(crop: CropData, frame: int) -> Rect2:
+	var key := "%s|%d" % [String(crop.id), frame]
+	if _frame_bbox_cache.has(key):
+		return _frame_bbox_cache[key]
+	var texture := crop.plant_texture
+	var hframes := maxi(1, int(crop.plant_frames))
+	var frame_width := int(texture.get_width() / hframes) if texture != null else 32
+	var frame_height := int(texture.get_height()) if texture != null else 64
+	var bbox := Rect2(0, 0, frame_width, frame_height)
+	var image: Image = texture.get_image() if texture != null else null
+	if image != null:
+		image = image.duplicate()
+		image.convert(Image.FORMAT_RGBA8)
+		var min_x := frame_width
+		var min_y := frame_height
+		var max_x := -1
+		var max_y := -1
+		for y in range(frame_height):
+			for x in range(frame_width):
+				if image.get_pixel(frame * frame_width + x, y).a > 0.06:
+					min_x = mini(min_x, x)
+					max_x = maxi(max_x, x)
+					min_y = mini(min_y, y)
+					max_y = maxi(max_y, y)
+		if max_x >= 0 and max_y >= 0:
+			bbox = Rect2(min_x, min_y, max_x - min_x + 1, max_y - min_y + 1)
+	_frame_bbox_cache[key] = bbox
+	return bbox
+
+
+func _frame_content_offset(crop: CropData, frame: int) -> Vector2:
+	var texture := crop.plant_texture
+	if texture == null:
+		return Vector2.ZERO
+	var hframes := maxi(1, int(crop.plant_frames))
+	var frame_center := Vector2(
+		float(texture.get_width() / hframes) * 0.5,
+		float(texture.get_height()) * 0.5)
+	return _frame_bbox(crop, frame).get_center() - frame_center
+
+
+func _crop_scale(crop: CropData) -> float:
+	var key := String(crop.id)
+	if _crop_scale_cache.has(key):
+		return float(_crop_scale_cache[key])
+	var frame_count := maxi(1, int(crop.plant_frames))
+	var max_height := 0.0
+	for frame in range(frame_count):
+		max_height = maxf(max_height, _frame_bbox(crop, frame).size.y)
+	if max_height <= 0.0:
+		max_height = 64.0
+	var scale_factor := clampf(PLOT_SIZE.y * PLANT_HEIGHT_RATIO / max_height, 0.8, 4.0)
+	# 番茄等成熟期比较宽的作物，再按宽度收一下，避免压到隔壁地块
+	var max_width := 0.0
+	for frame in range(frame_count):
+		max_width = maxf(max_width, _frame_bbox(crop, frame).size.x)
+	if max_width > 0.0:
+		scale_factor = minf(scale_factor, PLOT_SIZE.x * 0.86 / max_width)
+	scale_factor = clampf(scale_factor, 0.6, 4.0)
+	_crop_scale_cache[key] = scale_factor
+	return scale_factor
 
 
 func _refresh_seed_rows() -> void:
@@ -423,30 +599,31 @@ func _refresh_seed_rows() -> void:
 		var panel: PanelContainer = row["panel"]
 		panel.add_theme_stylebox_override("panel", UI.card_style(selected))
 		var select_button: Button = row["select"]
-		select_button.text = "%s种子
-成熟 %d 天 · 库存 %d" % [
-			crop.display_name, int(crop.grow_days), Inventory.get_amount(String(crop.seed_item_id))]
-		var price := int(crop.buy_price)
+		var stock := Inventory.get_amount(String(crop.seed_item_id))
+		var prefix := "✓ " if selected else ""
+		select_button.text = "%s%s种子\n成熟 %d 天 · 库存 %d" % [
+			prefix, crop.display_name, int(crop.grow_days), stock]
+		select_button.add_theme_color_override("font_color", UI.GOLD_DARK if selected else UI.INK)
+		select_button.add_theme_color_override("font_hover_color", UI.GOLD_DARK if selected else UI.INK)
 		var buy_button: Button = row["buy"]
-		buy_button.text = "买 1\n%d 蛙币" % price
-		buy_button.disabled = gold < price
+		buy_button.disabled = gold < int(crop.buy_price)
 
 
 func _refresh_stats() -> void:
-	var tilled := 0
-	for plot in FarmState.plots:
-		if int(plot["state"]) == FarmState.State.TILLED:
-			tilled += 1
-	_status_label.text = "地块：已锄 %d · 生长 %d · 可收 %d（共 %d 块）" % [
-		tilled, FarmState.growing_count(), FarmState.ripe_count(), PLOT_COUNT]
+	var growing := FarmState.growing_count()
+	var ripe := FarmState.ripe_count()
+	var idle := PLOT_COUNT - growing - ripe
+	(_stat_labels["growing"] as Label).text = "生长中 %d" % growing
+	(_stat_labels["ripe"] as Label).text = "可收 %d" % ripe
+	(_stat_labels["idle"] as Label).text = "空闲 %d" % idle
 
 	var today := FarmOutput.today_snapshot()
-	var today_parts: Array[String] = []
+	var parts: Array[String] = []
 	var ids: Array = today.keys()
 	ids.sort()
 	for item_id in ids:
-		today_parts.append("%s +%d" % [ItemDB.display_name(String(item_id)), int(today[item_id])])
-	_today_label.text = "今天还没有产出" if today_parts.is_empty() else "  ".join(today_parts)
+		parts.append("%s +%d" % [ItemDB.display_name(String(item_id)), int(today[item_id])])
+	_today_label.text = "今天还没有产出" if parts.is_empty() else "  ".join(parts)
 
 	var inventory_parts: Array[String] = []
 	for crop in FarmState.crops():
@@ -456,8 +633,17 @@ func _refresh_stats() -> void:
 	_inventory_label.text = "还没有收获过作物" if inventory_parts.is_empty() else "  ".join(inventory_parts)
 
 
+func _refresh_seed_preview() -> void:
+	var crop := FarmState.crop_by_id(FarmState.selected_crop_id)
+	if crop == null:
+		return
+	_seed_icon.texture = ItemDB.icon(String(crop.seed_item_id))
+	_seed_preview_label.text = "当前种子：%s ×%d · %d 天成熟" % [
+		crop.display_name, Inventory.get_amount(String(crop.seed_item_id)), int(crop.grow_days)]
+
+
 func _refresh_plot_info() -> void:
-	_plot_info.text = _describe_plot(_hover_plot) if _hover_plot >= 0 else 		"把鼠标移到地块上查看状态；点空地锄地，选好种子后点击已锄地播种，成熟后点击收获。"
+	_plot_info.text = _describe_plot(_hover_plot) if _hover_plot >= 0 else 		"点空地翻土，选好种子后点土播种；成熟后点作物收获，进仓库。"
 
 
 func _describe_plot(index: int) -> String:
@@ -467,34 +653,48 @@ func _describe_plot(index: int) -> String:
 	var crop := FarmState.crop_by_id(FarmState.plot_crop_id(index))
 	match state:
 		FarmState.State.UNTILLED:
-			return "第 %d 块地：空地。点击锄地。" % (index + 1)
+			return "第 %d 块：空地，点一下翻土。" % (index + 1)
 		FarmState.State.TILLED:
 			var selected := FarmState.crop_by_id(FarmState.selected_crop_id)
-			return "第 %d 块地：已锄地。当前选种「%s」，库存 %d 颗；点击播种。" % [
-				index + 1, _crop_name(selected),
-				Inventory.get_amount(String(selected.seed_item_id)) if selected != null else 0]
+			var stock := Inventory.get_amount(String(selected.seed_item_id)) if selected != null else 0
+			return "第 %d 块：已翻土。当前选种「%s」（库存 %d），点一下播种。" % [
+				index + 1, _crop_name(selected), stock]
 		FarmState.State.GROWING:
-			if crop == null:
-				return "第 %d 块地：生长中。" % (index + 1)
-			var planted_day := int(FarmState.plots[index]["planted_day"])
-			var left_days := maxi(1, int(crop.grow_days) - (GameClock.day - planted_day))
-			return "第 %d 块地：「%s」生长中 %d%%，还需约 %d 天。" % [
-				index + 1, crop.display_name, int(FarmState.growth_progress(index) * 100.0), left_days]
+			return "第 %d 块：「%s」生长中 %d%%，还需约 %d 天。" % [
+				index + 1, _crop_name(crop), int(FarmState.growth_progress(index) * 100.0), _days_left(index)]
 		FarmState.State.RIPE:
-			if crop == null:
-				return "第 %d 块地：已成熟。" % (index + 1)
-			return "第 %d 块地：「%s」已成熟，点击收获 %d~%d 个，自动进仓库。" % [
-				index + 1, crop.display_name, int(crop.yield_min), int(crop.yield_max)]
+			return "第 %d 块：「%s」成熟了，点一下收获 %d~%d 个，自动进仓库。" % [
+				index + 1, _crop_name(crop), int(crop.yield_min), int(crop.yield_max)]
 	return ""
+
+
+func _days_left(index: int) -> int:
+	var crop := FarmState.crop_by_id(FarmState.plot_crop_id(index))
+	if crop == null:
+		return 0
+	var planted_day := int(FarmState.plots[index]["planted_day"])
+	return maxi(1, int(crop.grow_days) - (GameClock.day - planted_day))
 
 
 func _on_plot_hovered(index: int, entered: bool) -> void:
 	if entered:
 		_hover_plot = index
-	else:
-		if _hover_plot == index:
-			_hover_plot = -1
+		_hover_panel.position = _plot_buttons[index].position - Vector2(4, 4)
+		_hover_panel.size = PLOT_SIZE + Vector2(8, 8)
+		_hover_panel.visible = true
+		_refresh_hover_bar()
+	elif _hover_plot == index:
+		_hover_plot = -1
+		_hover_panel.visible = false
+	_refresh_hover_bar()
 	_refresh_plot_info()
+
+
+## 生长进度条只在鼠标悬停时出现：平时画面里只留作物本身，画面更干净。
+func _refresh_hover_bar() -> void:
+	for i in range(_growth_bars.size()):
+		var bar: Control = _growth_bars[i]
+		bar.visible = i == _hover_plot and FarmState.plot_state(i) == FarmState.State.GROWING
 
 
 # ---------------- 动效 ----------------
@@ -503,22 +703,27 @@ func _process(delta: float) -> void:
 	if not visible:
 		return
 	_live_accum += delta
-	_pulse_time += delta
-	if _live_accum < 0.12:
+	_anim_time += delta
+	if _live_accum < UI_REFRESH_INTERVAL:
 		return
 	_live_accum = 0.0
-	# 只刷新会随时间变化的部分：生长进度条、可收标记呼吸、田地布局
 	for i in range(PLOT_COUNT):
 		var state := FarmState.plot_state(i)
+		var sprite: Sprite2D = _plant_sprites[i]
 		if state == FarmState.State.GROWING:
-			_progress_bars[i].value = FarmState.growth_progress(i) * 100.0
-			var sprite := _plant_sprites[i] if i < _plant_sprites.size() else null
-			var crop := FarmState.crop_by_id(FarmState.plot_crop_id(i))
-			if sprite != null and crop != null and sprite.hframes > 1:
-				sprite.frame = clampi(roundi(FarmState.growth_progress(i) * float(sprite.hframes - 1)), 0, sprite.hframes - 1)
+			_update_plant_visual(i)
+			var growth_bar: Control = _growth_bars[i]
+			if growth_bar.visible:
+				growth_bar.call("set_progress", FarmState.growth_progress(i))
+			if sprite != null and is_instance_valid(sprite):
+				sprite.rotation = sin(_anim_time * 1.8 + float(i) * 1.7) * 0.018
 		elif state == FarmState.State.RIPE:
-			_ripe_labels[i].modulate.a = 0.65 + 0.35 * sin(_pulse_time * 4.0)
-			_ripe_labels[i].modulate.a = clampf(_ripe_labels[i].modulate.a, 0.4, 1.0)
+			var badge: Panel = _ripe_badges[i]
+			if badge.visible:
+				var pulse := 1.0 + 0.06 * sin(_anim_time * 4.0 + float(i))
+				badge.scale = Vector2(pulse, pulse)
+			if sprite != null and is_instance_valid(sprite):
+				sprite.rotation = sin(_anim_time * 1.4 + float(i) * 1.9) * 0.012
 
 
 func _float_text(index: int, text_value: String, color: Color) -> void:
@@ -529,13 +734,13 @@ func _float_text(index: int, text_value: String, color: Color) -> void:
 	label.add_theme_color_override("font_outline_color", Color(0.08, 0.05, 0.02, 1.0))
 	label.add_theme_constant_override("outline_size", 4)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.position = plot.position + Vector2(PLOT_SIZE.x * 0.5 - 50, 12)
+	label.position = Vector2(plot.position.x + PLOT_SIZE.x * 0.5 - 50.0, plot.position.y + 8.0)
 	label.size = Vector2(100, 26)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_field_view.add_child(label)
+	_grid_root.add_child(label)
 	var tween := create_tween()
 	tween.set_parallel(true)
-	tween.tween_property(label, "position:y", label.position.y - 36.0, 0.8)
+	tween.tween_property(label, "position:y", label.position.y - 34.0, 0.8)
 	tween.tween_property(label, "modulate:a", 0.0, 0.6).set_delay(0.25)
 	tween.chain().tween_callback(label.queue_free)
 
@@ -544,7 +749,7 @@ func _float_text(index: int, text_value: String, color: Color) -> void:
 
 func _on_open() -> void:
 	_refresh()
-	call_deferred("_layout_plots")
+	call_deferred("_layout_field")
 
 
 func _on_day_started() -> void:

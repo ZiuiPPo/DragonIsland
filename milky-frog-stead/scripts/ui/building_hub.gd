@@ -1,25 +1,26 @@
 extends Control
 ## 建筑中心页（侧边栏「建筑」按钮打开）。
 ##
-## 这里列出可以进入的建筑：
-##   农田 —— 锄地 / 播种 / 按天生长 / 收获入库
-##   鸡舍 —— 投喂小麦 / 鸡下蛋 / 点击收蛋入库
-##
-## 点「进入」后本页隐藏，打开对应的独立建筑页面；建筑页里点「← 建筑」再回来。
-## 建筑页点「关闭 ×」或者本页按 Esc 时发出 closed，侧边栏负责把整个建筑层收起来。
+## 像一张"农场地图上的建筑入口"：两张立绘卡片，下面写清楚建筑里能做什么、
+## 当前状态，点绿色按钮进入对应独立页面。
 
 signal closed
 
 const UI := preload("res://scripts/ui/building_ui.gd")
 const FARM_WINDOW := preload("res://scripts/ui/building_farm_window.gd")
 const COOP_WINDOW := preload("res://scripts/ui/building_coop_window.gd")
+const WHEAT_TEXTURE := preload("res://assets/plants/wheat.png")
+const COOP_HOUSE_TEXTURE := preload("res://assets/sprites/decorations/farmland_set_20261105/house_egg.png")
 
 var _window_layer: Node
 var _farm_window: Control = null
 var _coop_window: Control = null
 var _farm_status: Label = null
 var _coop_status: Label = null
+var _day_label: Label = null
+var _coin_label: Label = null
 var _active_kind: String = ""
+var _coin_counter: Node = null
 
 
 func _ready() -> void:
@@ -30,7 +31,7 @@ func _ready() -> void:
 	EventBus.inventory_reloaded.connect(_refresh)
 	FarmState.changed.connect(_refresh)
 	CoopState.changed.connect(_refresh)
-	GameClock.day_started.connect(_on_day_started)
+	GameClock.day_started.connect(_on_day_changed)
 	hide()
 
 
@@ -80,7 +81,7 @@ func _build() -> void:
 	add_child(center)
 
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(1000, 620)
+	panel.custom_minimum_size = Vector2(1040, 640)
 	panel.add_theme_stylebox_override("panel", UI.page_style())
 	center.add_child(panel)
 
@@ -90,103 +91,122 @@ func _build() -> void:
 
 	# 标题栏
 	var header := HBoxContainer.new()
-	header.add_theme_constant_override("separation", 16)
+	header.add_theme_constant_override("separation", 14)
 	content.add_child(header)
-	header.add_child(UI.title_label("建筑", 34))
-	var subtitle := UI.label("选择一座建筑，进入独立的管理页面", 16, UI.TEXT_SOFT)
+	var title := UI.title_label("建筑", 36)
+	header.add_child(title)
+	var subtitle := UI.label("选择一座建筑，进入它的独立管理页面", 15, UI.INK_SOFT)
 	subtitle.size_flags_vertical = Control.SIZE_SHRINK_END
 	header.add_child(subtitle)
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(spacer)
-	var exit_button := UI.button("关闭 ×", 15, 38)
+	_day_label = UI.label("第 1 天", 15, UI.INK_SOFT)
+	header.add_child(_day_label)
+	_coin_label = UI.label("蛙币 0", 15, UI.GOLD_DARK)
+	header.add_child(_coin_label)
+	var exit_button := UI.button("关闭 ×", 14, 38)
 	exit_button.pressed.connect(close)
 	header.add_child(exit_button)
-	content.add_child(HSeparator.new())
+	content.add_child(UI.divider())
 
 	# 两张建筑卡片
 	var cards := HBoxContainer.new()
-	cards.add_theme_constant_override("separation", 24)
+	cards.add_theme_constant_override("separation", 22)
 	cards.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	content.add_child(cards)
 	_farm_status = _make_building_card(
 		cards, "farm", "农田",
-		"锄地、播种、按游戏日生长、收获入库。\n4 种作物 · 8 块地 · 窗口内可买种子",
-		"wheat"
+		"翻土、播种、等作物按天长大，再把它们收进仓库。种子可以在页面里直接买。",
+		WHEAT_TEXTURE, 4, 3, Color("2f3d1f"),
+		"进入农田", UI.GREEN
 	)
 	_coop_status = _make_building_card(
 		cards, "coop", "鸡舍",
-		"投喂小麦、看小鸡吃食、捡地上的鸡蛋。\n3 只小鸡 · 鸡蛋自动入库",
-		"egg"
+		"给食槽添小麦，看小鸡自己过来吃；吃饱的鸡会下蛋，蛋落在鸡窝里，点一下收进仓库。",
+		COOP_HOUSE_TEXTURE, 1, 0, Color("3a2c1a"),
+		"进入鸡舍", Color("a97c23")
 	)
 
-	content.add_child(HSeparator.new())
-	var footer := UI.wrapped_label(
-		"农田和鸡舍的产出都会自动进仓库；按 Esc 关闭建筑界面。", 13, UI.TEXT_SOFT)
-	content.add_child(footer)
+	content.add_child(UI.divider())
+	content.add_child(UI.wrapped_label(
+		"两座建筑的产出一律进仓库；按 Esc 关闭建筑界面。钓鱼台、果园后续开放。", 12))
 
 
-## 返回：这张卡片上的状态文字 Label（由 _refresh 更新）。
-func _make_building_card(parent: Container, kind: String, title: String,
-		description: String, icon_item_id: String) -> Label:
+func _make_building_card(parent: Container, kind: String, title: String, description: String,
+		art: Texture2D, art_hframes: int, art_frame: int, art_bg: Color,
+		button_text: String, button_color: Color) -> Label:
 	var card := PanelContainer.new()
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	card.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	card.add_theme_stylebox_override("panel", UI.card_style())
+	parent.add_child(card)
 
 	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 10)
+	column.add_theme_constant_override("separation", 8)
 	card.add_child(column)
 
-	var icon := TextureRect.new()
-	icon.texture = ItemDB.icon(icon_item_id)
-	icon.custom_minimum_size = Vector2(0, 132)
-	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	column.add_child(icon)
+	var art_panel := PanelContainer.new()
+	art_panel.custom_minimum_size = Vector2(0, 190)
+	art_panel.add_theme_stylebox_override("panel", UI.inner_style(art_bg, Color("2a1c0e")))
+	column.add_child(art_panel)
+	var art_rect := TextureRect.new()
+	art_rect.texture = art
+	art_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	art_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	art_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	art_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if art_hframes > 1:
+		# 用 TextureRect 显示 4 帧素材的最后一帧：裁一张成熟植株当立绘
+		var atlas := AtlasTexture.new()
+		atlas.atlas = art
+		var frame_width := art.get_width() / art_hframes
+		atlas.region = Rect2(frame_width * art_frame, 0, frame_width, art.get_height())
+		art_rect.texture = atlas
+	art_panel.add_child(art_rect)
 
 	var title_label := UI.title_label(title, 28)
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(title_label)
 
-	var desc_label := UI.wrapped_label(description, 15, UI.TEXT_SOFT)
+	var desc_label := UI.wrapped_label(description, 14, UI.INK_SOFT)
 	desc_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(desc_label)
 
-	var status_label := UI.label("", 15, UI.TEXT_DARK)
-	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	column.add_child(status_label)
+	var status_chip := UI.chip("", button_color, 13)
+	status_chip.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	column.add_child(status_chip)
+	var status_label := status_chip.get_child(0) as Label
 
-	column.add_child(_spacer())
-
-	var enter_button := UI.button("进入 " + title, 18, 48)
+	var enter_button := UI.colored_button(button_text, button_color, 17, 48)
 	enter_button.pressed.connect(open_building.bind(kind))
 	column.add_child(enter_button)
-
-	parent.add_child(card)
 	return status_label
 
 
-func _spacer() -> Control:
-	var spacer := Control.new()
-	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	return spacer
-
-
 func _refresh() -> void:
+	if _day_label != null:
+		_day_label.text = "第 %d 天 · %s" % [GameClock.day, GameClock.phase_name()]
+	var counter := get_tree().get_first_node_in_group("coin_counter")
+	if counter != _coin_counter:
+		_coin_counter = counter
+		if counter != null and counter.has_signal("gold_changed") 				and not counter.gold_changed.is_connected(_on_gold_changed):
+			counter.gold_changed.connect(_on_gold_changed)
+	if _coin_label != null:
+		_coin_label.text = "蛙币 %d" % int(_coin_counter.call("get_gold")) if _coin_counter != null 			else "蛙币 -"
 	if _farm_status != null:
-		_farm_status.text = "可收获 %d 块 · 生长中 %d 块 · 共 %d 块地" % [
-			FarmState.ripe_count(), FarmState.growing_count(), FarmState.PLOT_COUNT,
-		]
+		_farm_status.text = "可收 %d · 生长中 %d · 共 %d 块地" % [
+			FarmState.ripe_count(), FarmState.growing_count(), FarmState.PLOT_COUNT]
 	if _coop_status != null:
-		_coop_status.text = "饲料 %d 份 · 地上鸡蛋 %d 枚 · 累计收蛋 %d" % [
-			CoopState.trough_stock, CoopState.eggs_on_ground, CoopState.total_collected,
-		]
+		_coop_status.text = "饲料 %d · 巢箱蛋 %d · 累计收蛋 %d" % [
+			CoopState.trough_stock, CoopState.eggs_on_ground, CoopState.total_collected]
 
 
-func _on_day_started(_day: int) -> void:
+func _on_day_changed(_day: int) -> void:
+	_refresh()
+
+
+func _on_gold_changed(_value: int) -> void:
 	_refresh()
 
 

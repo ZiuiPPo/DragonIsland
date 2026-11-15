@@ -10,7 +10,7 @@ extends Node
 signal changed
 signal plot_changed(index: int)
 
-const PLOT_COUNT: int = 8
+const PLOT_COUNT: int = 18
 const CROP_DIR: String = "res://data/crops/"
 const DEFAULT_CROP_ID: String = "turnip"
 

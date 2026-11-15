@@ -127,7 +127,7 @@ func _build_shell() -> void:
 	var header := HBoxContainer.new()
 	header.add_theme_constant_override("separation", 16)
 	content.add_child(header)
-	header.add_child(UI.title_label(String(page_title()), 30))
+	header.add_child(UI.title_label(String(page_title()), 32))
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(spacer)
@@ -142,14 +142,14 @@ func _build_shell() -> void:
 	exit_button.pressed.connect(_on_exit_button_pressed)
 	header.add_child(exit_button)
 
-	content.add_child(HSeparator.new())
+	content.add_child(UI.divider())
 
 	body = VBoxContainer.new()
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	body.add_theme_constant_override("separation", 10)
 	content.add_child(body)
 
-	content.add_child(HSeparator.new())
+	content.add_child(UI.divider())
 	var footer := HBoxContainer.new()
 	footer.add_theme_constant_override("separation", 16)
 	content.add_child(footer)

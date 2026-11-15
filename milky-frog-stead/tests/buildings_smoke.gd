@@ -32,7 +32,7 @@ func _run() -> void:
 	check("FarmState autoload 已注册", FarmState != null)
 	check("CoopState autoload 已注册", CoopState != null)
 	check("GameClock autoload 已注册", GameClock != null)
-	check("农田 8 块地", FarmState.PLOT_COUNT == 8 and FarmState.plots.size() == 8)
+	check("农田 18 块地", FarmState.PLOT_COUNT == 18 and FarmState.plots.size() == 18)
 	var crop_ids := FarmState.crop_ids()
 	check("作物配置 4 种", crop_ids.size() == 4)
 	for expected_id in ["turnip", "lettuce", "wheat", "tomato"]:
@@ -63,7 +63,7 @@ func _run() -> void:
 	await get_tree().process_frame
 	var farm_window = hub._farm_window
 	check("农田页打开", farm_window != null and farm_window.visible)
-	check("农田页有 8 块地", farm_window.plot_count() == 8)
+	check("农田页有 18 块地", farm_window.plot_count() == 18)
 
 	# ---------------- 种地闭环 ----------------
 	Inventory.from_dict({"turnip_seed": 5, "wheat_seed": 4, "wheat": 10})

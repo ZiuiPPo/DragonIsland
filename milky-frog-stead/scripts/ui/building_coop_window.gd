@@ -1,45 +1,104 @@
 extends "res://scripts/ui/building_window_base.gd"
-## 鸡舍建筑独立页面。
+## 鸡舍建筑独立页面（星露谷式鸡舍内部）。
 ##
-## 页面结构：
-##   左边是深色鸡舍围栏：草地、鸡窝、3 只自己走动的小鸡、底部食盆；
-##   右边是鸡舍状态：3 只鸡的饥饿条与状态、食盆存量、地上 / 累计鸡蛋、操作按钮。
-##
-## 数值全在 CoopState autoload 里，本页只负责「画出来 + 把点击转成数据操作」。
-## 窗口打开时把 CoopState.ui_active 置 true，由本页 _process 驱动鸡走到食盆进食；
-## 窗口关闭后数据层自己进食，保证关掉建筑界面时蛋也在慢慢产出。
+## 场景不再是一块绿色网格 + 几张图标，而是「木墙 + 木地板」的室内：
+##   上方 34% 是钉着 3 个稻草巢箱的木板墙，下方 66% 是鸡活动 / 食槽所在的木地板；
+##   鸡蛋只出现在巢箱里，必须点巢箱里的蛋才收得进仓库。
+## 数值仍全部在 CoopState autoload 里，本页只画场景 + 把点击转成数据操作。
+## 窗口打开时 CoopState.ui_active = true，由本页 _process 驱动鸡走到食槽进食；
+## 窗口关闭后交还数据层自动进食，保证关掉建筑界面时蛋也在慢慢产出。
 
 const CHICKEN_SCENE := preload("res://scenes/chicken/chicken.tscn")
-const GRASS_TEXTURE := preload("res://assets/tilesets/grass.png")
-const HOUSE_TEXTURE := preload(
-	"res://assets/sprites/decorations/farmland_set_20261105/house_egg.png")
+const CHICKEN_SHEET := preload("res://assets/sprites/chickens/chicken_all_left.png")
+const GRASS_TUFT := preload("res://assets/sprites/decorations/grass_tuft.png")
 
-## 鸡舍里固定养 3 只鸡（与 CoopState.CHICKEN_NAMES 的数量一致）
+# ---------------- 场景尺寸 ----------------
 const CHICKEN_COUNT: int = 3
 const EGG_BUTTON_COUNT: int = 6
-const EGG_BUTTON_SIZE := Vector2(44.0, 44.0)
-## 6 枚蛋固定摆在鸡窝（草垫）上的 6 个锚点，相对围栏宽高的比例，避免窗口缩放时跑偏
-const EGG_SPOTS := [
-	Vector2(0.55, 0.60), Vector2(0.66, 0.605), Vector2(0.77, 0.595),
-	Vector2(0.60, 0.685), Vector2(0.71, 0.69), Vector2(0.82, 0.675),
-]
-const CHICKEN_SCALE: float = 0.68
-const CHICKEN_SPEED_MIN: float = 40.0
-const CHICKEN_SPEED_MAX: float = 58.0
-## 吃到饲料后播 eat 动画的时长
+const EGGS_PER_NEST: int = 2
+const NEST_COUNT: int = 3
+const EGG_BUTTON_SIZE := Vector2(38.0, 38.0)
+const EGG_ICON_MAX_WIDTH: int = 34
+## 上方木板墙占场景高度的比例
+const WALL_RATIO: float = 0.34
+## 木板墙竖缝数量：场景宽约 900 时每 33px 一条，落在 28~36px 的区间里
+const WALL_SEAMS: int = 26
+const FLOOR_SEAMS: int = 11
+const ARENA_MIN_HEIGHT: float = 520.0
+const SIDE_PANEL_WIDTH: float = 340.0
+
+# ---------------- 小鸡 ----------------
+## 帧图是 128x128，但小鸡美术只占中间约 48x53 像素；
+## 0.92 时视觉高度约 49px，和巢箱、鸡蛋（36px）比例合适（旧版 0.68 明显偏小）。
+const CHICKEN_SCALE: float = 0.98
+## 帧内脚底在 y≈84、帧中心 64：-20 让节点原点落回脚底，站姿和影子都用脚底坐标
+const CHICKEN_ART_OFFSET := Vector2(0.0, -20.0)
+const CHICKEN_SHADOW_SIZE := Vector2(57.0, 18.0)
+const CHICKEN_SPEED_MIN: float = 38.0
+const CHICKEN_SPEED_MAX: float = 56.0
 const EAT_SECONDS: float = 2.0
 const ARRIVE_DISTANCE: float = 26.0
-## 小鸡只在围栏中段的这个比例区间里活动，避开上面的鸡窝和下面的食盆
-const WALK_TOP_RATIO: float = 0.46
-const WALK_BOTTOM_RATIO: float = 0.78
-const WALK_SIDE_MARGIN: float = 56.0
-const ARENA_MIN_HEIGHT: float = 470.0
-const SIDE_PANEL_WIDTH: float = 340.0
-const HUNGER_BAR_HEIGHT: float = 10.0
+## 小鸡活动区：距墙脚留 74px、距场景底边留 26px，脚底坐标
+const WALK_TOP_PADDING: float = 74.0
+const WALK_BOTTOM_PADDING: float = 26.0
+const WALK_SIDE_MARGIN: float = 48.0
 
-## 底部提示条上的成功 / 警告配色（浅色木纹面板上用深一点的颜色才看得清）
-const FEEDBACK_OK := Color(0.15, 0.42, 0.18)
-const FEEDBACK_WARN := Color(0.62, 0.33, 0.10)
+# ---------------- 场景配色 ----------------
+const WALL_BASE := Color("66492b")
+const WALL_SEAM := Color("452f18")
+const WALL_TOP := Color("2f2110")
+const FLOOR_BASE := Color("9a7245")
+const FLOOR_SEAM := Color("6b4a28")
+const FLOOR_GRAIN := Color(0.22, 0.13, 0.05, 0.20)
+const BASEBOARD := Color("4a3419")
+const NEST_HOLE_BG := Color("372413")
+const STRAW := Color("d9b64e")
+const STRAW_DARK := Color("a9842f")
+const WATER := Color("6fa7c4")
+const SHADOW_BG := Color(0.10, 0.06, 0.02, 0.30)
+
+# ---------------- 场景布局（比例坐标，窗口缩放时自动跟随） ----------------
+## 3 个巢箱在墙上横排：x / y / 宽 / 高 都是场景宽高的比例
+const NEST_RECTS := [
+	Rect2(0.155, 0.055, 0.225, 0.255),
+	Rect2(0.415, 0.055, 0.225, 0.255),
+	Rect2(0.675, 0.055, 0.225, 0.255),
+]
+## 地板上的木纹，让木地板不至于平得像纯色色块
+const FLOOR_GRAIN_RECTS := [
+	Rect2(0.10, 0.47, 0.09, 0.005),
+	Rect2(0.55, 0.53, 0.12, 0.005),
+	Rect2(0.30, 0.63, 0.07, 0.005),
+	Rect2(0.72, 0.72, 0.10, 0.005),
+	Rect2(0.18, 0.84, 0.08, 0.005),
+	Rect2(0.60, 0.90, 0.11, 0.005),
+]
+## 散落在地上的草屑
+const STRAW_BITS := [
+	Rect2(0.12, 0.56, 0.020, 0.006),
+	Rect2(0.24, 0.68, 0.016, 0.006),
+	Rect2(0.40, 0.60, 0.022, 0.007),
+	Rect2(0.52, 0.78, 0.018, 0.006),
+	Rect2(0.66, 0.64, 0.021, 0.006),
+	Rect2(0.78, 0.86, 0.016, 0.006),
+	Rect2(0.36, 0.92, 0.020, 0.006),
+	Rect2(0.88, 0.70, 0.018, 0.006),
+]
+## 地板上的稻草簇：x, y, 像素尺寸, 旋转弧度
+const FLOOR_TUFTS := [
+	[0.09, 0.53, 46.0, -0.30],
+	[0.20, 0.70, 40.0, 0.18],
+	[0.30, 0.88, 50.0, -0.10],
+	[0.43, 0.64, 44.0, 0.26],
+	[0.56, 0.84, 46.0, -0.22],
+	[0.65, 0.56, 38.0, 0.12],
+	[0.78, 0.72, 46.0, -0.16],
+	[0.88, 0.60, 38.0, 0.24],
+	# 右下角堆一小垛干草，让角落不空
+	[0.90, 0.88, 64.0, -0.08],
+	[0.95, 0.84, 52.0, 0.16],
+	[0.86, 0.93, 56.0, 0.10],
+]
 
 # 鸡的行走模式。只影响画面，饥饿 / 产蛋数值由 CoopState 决定。
 const MODE_WANDER: int = 0
@@ -48,14 +107,14 @@ const MODE_EAT: int = 2
 const MODE_IDLE: int = 3
 
 
-## 一只鸡的界面状态：位置、随机落脚点、朝向和当前动作。
-## 单独存一份是为了把「画面上怎么走」和 CoopState 里的数值解耦，
-## 换场景 / 重开窗口时只需要重新摆位置，不用碰数据层。
+## 一只鸡的界面状态：把「画面上怎么走」和 CoopState 里的数值解耦。
+## pos 是脚底坐标（和精灵 offset 对齐），影子 / 站位都直接用它。
 class ChickenView:
 	var sprite: AnimatedSprite2D = null
+	var shadow: Panel = null
 	var pos: Vector2 = Vector2.ZERO
 	var target: Vector2 = Vector2.ZERO
-	var speed: float = 48.0
+	var speed: float = 46.0
 	var facing: int = 1
 	var mode: int = 0
 	var timer: float = 0.0
@@ -63,16 +122,17 @@ class ChickenView:
 
 var _arena: Control = null
 var _trough_button: Button = null
+var _trough_label: Label = null
 var _egg_buttons: Array[Button] = []
 var _chicken_frames: SpriteFrames = null
 var _chickens: Array = []
 var _chickens_initialized: bool = false
 
-# 右侧状态面板的控件
+# 右侧状态面板
 var _chicken_name_labels: Array[Label] = []
-var _chicken_bars: Array[ProgressBar] = []
-var _chicken_states: Array[Label] = []
-var _chicken_fill_styles: Array[StyleBoxFlat] = []
+var _chicken_state_labels: Array[Label] = []
+var _chicken_hunger_bars: Array = []
+var _chicken_lay_bars: Array = []
 var _trough_stock_label: Label = null
 var _wheat_label: Label = null
 var _fill_button: Button = null
@@ -88,7 +148,7 @@ func page_title() -> String:
 
 
 func page_hint() -> String:
-	return "点食盆投喂 · 鸡饿了自己来吃 · 点地上的蛋收进仓库 · Esc 返回建筑"
+	return "点食槽投喂 · 鸡饿了自己来吃 · 点巢箱里的蛋收进仓库 · Esc 返回建筑"
 
 
 func _build_body(parent: VBoxContainer) -> void:
@@ -100,12 +160,12 @@ func _build_body(parent: VBoxContainer) -> void:
 	_build_arena(main)
 	_build_side_panel(main)
 
-	# 数据层任何变化（投喂 / 吃食 / 产蛋 / 收蛋）都刷新右侧数字和地上的蛋
+	# 数据层任何变化（投喂 / 吃食 / 产蛋 / 收蛋）都刷新右侧数字和巢箱里的蛋
 	CoopState.changed.connect(_refresh)
 	_refresh()
 
 
-# ---------------- 左边：鸡舍围栏 ----------------
+# ---------------- 左边：鸡舍内部场景 ----------------
 
 func _build_arena(main: HBoxContainer) -> void:
 	var left := VBoxContainer.new()
@@ -115,7 +175,7 @@ func _build_arena(main: HBoxContainer) -> void:
 
 	var panel := PanelContainer.new()
 	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	panel.add_theme_stylebox_override("panel", UI.dark_style(Color(0.16, 0.22, 0.12, 1.0)))
+	panel.add_theme_stylebox_override("panel", UI.dark_style(Color("2f2110")))
 	left.add_child(panel)
 
 	_arena = Control.new()
@@ -125,43 +185,459 @@ func _build_arena(main: HBoxContainer) -> void:
 	_arena.clip_contents = true
 	panel.add_child(_arena)
 
-	# 用图集里的「全填充」草格（第 4 行第 0 列，索引 44），平铺才没有网格线
-	_arena.add_child(UI.tiled_rect(GRASS_TEXTURE, 44))
-	_build_house()
+	_build_coop_room()
+	_build_nest_row()
+	_build_trough()
+	_build_water_bowl()
+	_build_floor_decor()
 
 	_chicken_frames = _load_chicken_frames()
 	for index in range(CHICKEN_COUNT):
 		_build_chicken(index)
 
-	_build_nest()
-	_build_eggs()
-	_build_trough()
+	# 暗角放最后压住整块场景增加纵深；mouse_filter=IGNORE 所以不挡食槽 / 蛋的点击
+	var vignette := UI.vignette(0.30)
+	vignette.z_index = 10
+	_arena.add_child(vignette)
 
 	left.add_child(UI.wrapped_label(
-		"小鸡饿了会自己走到食盆边；食盆空了就先投喂。窗口关掉后它们也会自己吃。", 14))
+		"小鸡只在木地板上活动，饿了会走到左下角食槽；鸡蛋落在巢箱里，点一下才收进仓库。", 13))
 
 
-func _build_house() -> void:
-	var house := TextureRect.new()
-	house.texture = HOUSE_TEXTURE
-	house.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	house.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	house.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	house.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_arena.add_child(house)
-	# 贴右上角；不挡点击，纯装饰
-	house.anchor_left = 1.0
-	house.anchor_right = 1.0
-	house.anchor_top = 0.0
-	house.anchor_bottom = 0.0
-	house.offset_left = -186.0
-	house.offset_right = -16.0
-	house.offset_top = 8.0
-	house.offset_bottom = 196.0
+## 木板墙 + 木地板 + 踢脚线 + 小窗，全部用色块拼，不依赖草地 / 泥地贴图
+func _build_coop_room() -> void:
+	# 1) 木板墙：底色 + 深色竖缝
+	_add_rect(_arena, WALL_BASE, Rect2(0.0, 0.0, 1.0, WALL_RATIO))
+	for index in range(WALL_SEAMS + 1):
+		# 每块木板明暗交替，比单色墙更像真木板
+		var left := float(index) / float(WALL_SEAMS + 1)
+		var width := 1.0 / float(WALL_SEAMS + 1)
+		if index % 2 == 0:
+			_add_rect(_arena, Color(1.0, 0.90, 0.70, 0.035),
+				Rect2(left, 0.014, width, WALL_RATIO - 0.014))
+	for index in range(WALL_SEAMS):
+		var x := float(index + 1) / float(WALL_SEAMS + 1)
+		_add_vline(_arena, x, 3.0, 0.0, WALL_RATIO, WALL_SEAM)
+	# 墙顶压条和腰线，让墙有厚度
+	_add_rect(_arena, WALL_TOP, Rect2(0.0, 0.0, 1.0, 0.014))
+	_add_hline(_arena, 0.150, 2.0, 0.0, 1.0, Color(0.0, 0.0, 0.0, 0.18))
+	_add_hline(_arena, 0.154, 1.0, 0.0, 1.0, Color(1.0, 0.9, 0.7, 0.12))
+
+	# 2) 木地板：底色 + 明暗交替的板条 + 横向木缝 + 木纹
+	_add_rect(_arena, FLOOR_BASE, Rect2(0.0, WALL_RATIO, 1.0, 1.0 - WALL_RATIO))
+	var plank_height := (1.0 - WALL_RATIO) / float(FLOOR_SEAMS + 1)
+	for index in range(FLOOR_SEAMS + 1):
+		var top := WALL_RATIO + float(index) * plank_height
+		var tint := Color(1.0, 0.94, 0.78, 0.035) if index % 2 == 0 else Color(0.16, 0.09, 0.03, 0.055)
+		_add_rect(_arena, tint, Rect2(0.0, top, 1.0, plank_height))
+	for index in range(FLOOR_SEAMS):
+		var y := WALL_RATIO + float(index + 1) * plank_height
+		_add_hline(_arena, y, 2.0, 0.0, 1.0, FLOOR_SEAM)
+	for grain in FLOOR_GRAIN_RECTS:
+		_add_rect(_arena, FLOOR_GRAIN, grain)
+
+	# 3) 踢脚线：墙和地板的交界，给场景一条明确的“地平线”
+	_add_rect(_arena, BASEBOARD, Rect2(0.0, WALL_RATIO - 0.010, 1.0, 0.021))
+	_add_hline(_arena, WALL_RATIO - 0.010, 2.0, 0.0, 1.0, Color(0.86, 0.70, 0.44, 0.50))
+	_add_hline(_arena, WALL_RATIO + 0.011, 2.0, 0.0, 1.0, Color(0.0, 0.0, 0.0, 0.35))
+
+	_build_window()
 
 
-## 直接从 chicken.tscn 里取调好的 SpriteFrames：动画名和帧布局已经能复用。
-## 临时实例化只为了拿资源，取完立刻 free，不进场景树也不会跑小鸡自己的脚本逻辑。
+## 墙上的小窗：浅蓝天空 + 十字木框 + 窗台，给室内一点生活感
+func _build_window() -> void:
+	var frame := Panel.new()
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame.z_index = 1
+	frame.add_theme_stylebox_override("panel", _window_style())
+	_arena.add_child(frame)
+	_apply_anchor_rect(frame, Rect2(0.022, 0.020, 0.098, 0.245))
+
+	var sky := Panel.new()
+	sky.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	sky.add_theme_stylebox_override("panel", _inner_style(Color("9cc9d8"), Color("4d6f7a")))
+	frame.add_child(sky)
+	_apply_anchor_rect(sky, Rect2(0.12, 0.09, 0.76, 0.82))
+
+	# 天空上浅下深 + 太阳 + 两朵云
+	_add_rect(sky, Color(0.85, 0.94, 1.0, 0.55), Rect2(0.0, 0.0, 1.0, 0.40))
+	_add_rect(sky, Color(1.0, 0.96, 0.80, 0.95), Rect2(0.60, 0.12, 0.20, 0.20))
+	_add_rect(sky, Color(1.0, 1.0, 1.0, 0.55), Rect2(0.10, 0.30, 0.32, 0.10))
+	_add_rect(sky, Color(1.0, 1.0, 1.0, 0.40), Rect2(0.42, 0.50, 0.42, 0.09))
+	# 十字窗框
+	_add_vline(sky, 0.5, 5.0, 0.0, 1.0, UI.WOOD_LIGHT)
+	_add_hline(sky, 0.5, 5.0, 0.0, 1.0, UI.WOOD_LIGHT)
+
+	# 窗台
+	_add_rect(_arena, UI.WOOD, Rect2(0.012, 0.258, 0.118, 0.011), 1)
+	_add_hline(_arena, 0.268, 2.0, 0.012, 0.130, Color(0.0, 0.0, 0.0, 0.35))
+
+
+## 墙上的 3 个巢箱 + 托板；巢箱里铺稻草，2 个蛋位对应地上的蛋
+func _build_nest_row() -> void:
+	# 木托板：让 3 个巢箱看起来是固定在墙上的架子
+	_add_rect(_arena, UI.WOOD, Rect2(0.135, 0.302, 0.800, 0.018))
+	_add_hline(_arena, 0.302, 2.0, 0.135, 0.935, Color(1.0, 0.90, 0.70, 0.25))
+	_add_hline(_arena, 0.320, 3.0, 0.135, 0.935, Color(0.0, 0.0, 0.0, 0.30))
+
+	for index in range(NEST_COUNT):
+		_build_nest(index)
+
+
+func _build_nest(index: int) -> void:
+	var nest := Panel.new()
+	nest.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	nest.add_theme_stylebox_override("panel", _nest_frame_style())
+	_arena.add_child(nest)
+	_apply_anchor_rect(nest, NEST_RECTS[index])
+
+	# 深色内洞：蛋就落在这一层稻草上
+	var inner := Panel.new()
+	inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	inner.add_theme_stylebox_override("panel", _nest_hole_style())
+	nest.add_child(inner)
+	_apply_anchor_rect(inner, Rect2(0.055, 0.13, 0.89, 0.76))
+
+	# 内洞上缘：一条木沿高光 + 两层阴影，让巢箱看起来是「往里凹」的盒子
+	_add_rect(inner, Color(1.0, 0.86, 0.58, 0.12), Rect2(0.0, 0.0, 1.0, 0.06))
+	_add_rect(inner, Color(0.0, 0.0, 0.0, 0.38), Rect2(0.0, 0.06, 1.0, 0.14))
+	_add_rect(inner, Color(0.0, 0.0, 0.0, 0.16), Rect2(0.0, 0.20, 1.0, 0.10))
+
+	# 稻草层：几层深浅不同的草垫 + 细草秆 + 两侧草簇，铺满巢箱下半部分
+	_add_rect(inner, Color("73541f"), Rect2(0.02, 0.54, 0.96, 0.36))
+	_add_rect(inner, STRAW_DARK, Rect2(0.03, 0.60, 0.94, 0.27))
+	_add_rect(inner, STRAW, Rect2(0.05, 0.65, 0.90, 0.19))
+	_add_rect(inner, Color(1.0, 0.90, 0.50, 0.30), Rect2(0.07, 0.67, 0.86, 0.05))
+	for straw_index in range(12):
+		var straw := ColorRect.new()
+		straw.color = Color("e7c75a") if straw_index % 2 == 0 else STRAW_DARK
+		straw.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		inner.add_child(straw)
+		_apply_anchor_rect(straw, Rect2(
+			0.04 + 0.082 * float(straw_index),
+			0.58 + 0.035 * float(straw_index % 4),
+			0.11, 0.032))
+		straw.rotation = (float(straw_index % 3) - 1.0) * 0.12
+	_add_nest_tuft(inner, 0.13, 0.78, 58.0)
+	_add_nest_tuft(inner, 0.85, 0.76, 64.0)
+	# 巢箱前缘木沿：强化「箱子有厚度」，蛋看起来是落在箱底
+	_add_rect(inner, UI.WOOD_LIGHT, Rect2(0.0, 0.93, 1.0, 0.07))
+	_add_hline(inner, 0.93, 2.0, 0.0, 1.0, Color(0.0, 0.0, 0.0, 0.35))
+
+	# 每个巢箱 2 个蛋位；蛋只会出现在这里
+	for slot in range(EGGS_PER_NEST):
+		var egg_index := index * EGGS_PER_NEST + slot
+		var button := _create_egg_button(egg_index)
+		inner.add_child(button)
+		var anchor_x := 0.32 + 0.36 * float(slot)
+		button.anchor_left = anchor_x
+		button.anchor_right = anchor_x
+		button.anchor_top = 0.50
+		button.anchor_bottom = 0.50
+		button.offset_left = -EGG_BUTTON_SIZE.x * 0.5
+		button.offset_right = EGG_BUTTON_SIZE.x * 0.5
+		button.offset_top = -EGG_BUTTON_SIZE.y * 0.5
+		button.offset_bottom = EGG_BUTTON_SIZE.y * 0.5
+
+
+func _add_nest_tuft(parent: Control, x_ratio: float, y_ratio: float, width: float) -> void:
+	var tuft := TextureRect.new()
+	tuft.texture = GRASS_TUFT
+	tuft.modulate = STRAW
+	tuft.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	tuft.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	tuft.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	tuft.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(tuft)
+	tuft.anchor_left = x_ratio
+	tuft.anchor_right = x_ratio
+	tuft.anchor_top = y_ratio
+	tuft.anchor_bottom = y_ratio
+	tuft.offset_left = -width * 0.5
+	tuft.offset_right = width * 0.5
+	tuft.offset_top = -width * 0.125
+	tuft.offset_bottom = width * 0.125
+	tuft.rotation = (0.12 if x_ratio < 0.5 else -0.10)
+
+
+func _create_egg_button(index: int) -> Button:
+	var button := Button.new()
+	button.focus_mode = Control.FOCUS_NONE
+	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	button.flat = true
+	button.icon = ItemDB.icon(CoopState.EGG_ITEM_ID)
+	button.expand_icon = true
+	button.add_theme_constant_override("icon_max_width", EGG_ICON_MAX_WIDTH)
+	button.tooltip_text = "点击把这枚鸡蛋收进仓库"
+	button.visible = false
+	button.z_index = 2
+	# flat Button 默认样式会带来额外内边距，撑大 36px 蛋位；换成空样式并自己画 hover
+	var empty := StyleBoxEmpty.new()
+	var hover := StyleBoxFlat.new()
+	hover.bg_color = Color(1.0, 0.95, 0.75, 0.16)
+	hover.set_corner_radius_all(10)
+	var pressed := StyleBoxFlat.new()
+	pressed.bg_color = Color(1.0, 0.90, 0.55, 0.26)
+	pressed.set_corner_radius_all(10)
+	button.add_theme_stylebox_override("normal", empty)
+	button.add_theme_stylebox_override("hover", hover)
+	button.add_theme_stylebox_override("pressed", pressed)
+	button.add_theme_stylebox_override("focus", empty)
+	button.pressed.connect(press_collect_egg_at.bind(index))
+	_egg_buttons.append(button)
+	return button
+
+
+## 左下角木质食槽：点击 = 从仓库倒 3 份小麦进食槽
+func _build_trough() -> void:
+	_trough_button = Button.new()
+	_trough_button.focus_mode = Control.FOCUS_NONE
+	_trough_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	_trough_button.tooltip_text = "点击从仓库倒 3 份小麦饲料进食槽"
+	_trough_button.add_theme_stylebox_override("normal", _trough_style(UI.WOOD, false))
+	_trough_button.add_theme_stylebox_override("hover", _trough_style(UI.WOOD_LIGHT, false))
+	_trough_button.add_theme_stylebox_override("pressed", _trough_style(UI.WOOD_DARK, true))
+	_trough_button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	_trough_button.z_index = 6
+	_trough_button.pressed.connect(press_trough)
+	_arena.add_child(_trough_button)
+	_trough_button.anchor_left = 0.035
+	_trough_button.anchor_right = 0.30
+	_trough_button.anchor_top = 1.0
+	_trough_button.anchor_bottom = 1.0
+	_trough_button.offset_left = 0.0
+	_trough_button.offset_right = 0.0
+	_trough_button.offset_top = -98.0
+	_trough_button.offset_bottom = -26.0
+
+	# 顶部木沿高光
+	_add_rect(_trough_button, Color(1.0, 0.92, 0.70, 0.22), Rect2(0.03, 0.05, 0.94, 0.035))
+
+	# 深色槽口
+	var cavity := Panel.new()
+	cavity.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cavity.add_theme_stylebox_override("panel", _inner_style(Color("2e1d0c"), Color("160d04"), 2, 8))
+	_trough_button.add_child(cavity)
+	_apply_anchor_rect(cavity, Rect2(0.05, 0.52, 0.90, 0.38))
+
+	# 槽口里的小麦
+	var wheat_icon := TextureRect.new()
+	wheat_icon.texture = ItemDB.icon(CoopState.FEED_ITEM_ID)
+	wheat_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	wheat_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	wheat_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	wheat_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_trough_button.add_child(wheat_icon)
+	wheat_icon.anchor_left = 0.13
+	wheat_icon.anchor_right = 0.13
+	wheat_icon.anchor_top = 0.72
+	wheat_icon.anchor_bottom = 0.72
+	wheat_icon.offset_left = -20.0
+	wheat_icon.offset_right = 20.0
+	wheat_icon.offset_top = -18.0
+	wheat_icon.offset_bottom = 18.0
+
+	# 饲料数量
+	_trough_label = UI.label("饲料 0/9", 18, UI.TEXT_LIGHT)
+	_trough_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_trough_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_trough_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_trough_button.add_child(_trough_label)
+	_apply_anchor_rect(_trough_label, Rect2(0.10, 0.08, 0.86, 0.40))
+	var hint := UI.label("点击投喂", 12, Color(1.0, 0.95, 0.82, 0.9))
+	hint.add_theme_color_override("font_outline_color", Color(0.16, 0.10, 0.04, 0.9))
+	hint.add_theme_constant_override("outline_size", 2)
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_trough_button.add_child(hint)
+	_apply_anchor_rect(hint, Rect2(0.10, 0.44, 0.86, 0.16))
+
+
+## 食槽旁边的小水盆，纯装饰（鸡不用喝水，只是让角落不空）
+func _build_water_bowl() -> void:
+	var bowl := Panel.new()
+	bowl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bowl.z_index = 5
+	bowl.add_theme_stylebox_override("panel", _inner_style(UI.WOOD_LIGHT, UI.WOOD_DARK, 3, 10))
+	_arena.add_child(bowl)
+	bowl.anchor_left = 0.318
+	bowl.anchor_right = 0.378
+	bowl.anchor_top = 1.0
+	bowl.anchor_bottom = 1.0
+	bowl.offset_left = 0.0
+	bowl.offset_right = 0.0
+	bowl.offset_top = -66.0
+	bowl.offset_bottom = -30.0
+
+	var water := Panel.new()
+	water.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	water.add_theme_stylebox_override("panel", _inner_style(WATER, Color("3f6f8a"), 2, 8))
+	bowl.add_child(water)
+	_apply_anchor_rect(water, Rect2(0.14, 0.24, 0.72, 0.62))
+
+
+## 地板上的稻草簇 / 草屑，去掉「绿色网格摆图标」的塑料感
+func _build_floor_decor() -> void:
+	for tuft_info in FLOOR_TUFTS:
+		_add_floor_tuft(
+			float(tuft_info[0]), float(tuft_info[1]),
+			float(tuft_info[2]), float(tuft_info[3]))
+	for bit in STRAW_BITS:
+		var straw := _add_rect(_arena, STRAW_DARK, bit, 1)
+		straw.rotation = randf_range(-0.35, 0.35)
+
+
+func _add_floor_tuft(x_ratio: float, y_ratio: float, size_px: float, angle: float) -> void:
+	var tuft := TextureRect.new()
+	tuft.texture = GRASS_TUFT
+	tuft.modulate = Color("e8c95f")
+	tuft.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	tuft.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	tuft.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	tuft.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tuft.z_index = 1
+	_arena.add_child(tuft)
+	tuft.anchor_left = x_ratio
+	tuft.anchor_right = x_ratio
+	tuft.anchor_top = y_ratio
+	tuft.anchor_bottom = y_ratio
+	tuft.offset_left = -size_px * 0.5
+	tuft.offset_right = size_px * 0.5
+	tuft.offset_top = -size_px * 0.5
+	tuft.offset_bottom = size_px * 0.5
+	tuft.pivot_offset = Vector2(size_px, size_px) * 0.5
+	tuft.rotation = angle
+
+
+# ---------------- 场景工具 ----------------
+
+## 用比例锚点把控件摆到场景里（窗口缩放时自动跟随）
+func _apply_anchor_rect(control: Control, ratio: Rect2) -> void:
+	control.anchor_left = ratio.position.x
+	control.anchor_right = ratio.position.x + ratio.size.x
+	control.anchor_top = ratio.position.y
+	control.anchor_bottom = ratio.position.y + ratio.size.y
+	control.offset_left = 0.0
+	control.offset_right = 0.0
+	control.offset_top = 0.0
+	control.offset_bottom = 0.0
+
+
+func _add_rect(parent: Control, color: Color, ratio: Rect2, layer: int = 0) -> ColorRect:
+	var rect := ColorRect.new()
+	rect.color = color
+	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rect.z_index = layer
+	parent.add_child(rect)
+	_apply_anchor_rect(rect, ratio)
+	return rect
+
+
+func _add_vline(parent: Control, x_ratio: float, width: float, top_ratio: float,
+		bottom_ratio: float, color: Color) -> ColorRect:
+	var rect := ColorRect.new()
+	rect.color = color
+	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(rect)
+	rect.anchor_left = x_ratio
+	rect.anchor_right = x_ratio
+	rect.anchor_top = top_ratio
+	rect.anchor_bottom = bottom_ratio
+	rect.offset_left = -width * 0.5
+	rect.offset_right = width * 0.5
+	rect.offset_top = 0.0
+	rect.offset_bottom = 0.0
+	return rect
+
+
+func _add_hline(parent: Control, y_ratio: float, height: float, left_ratio: float,
+		right_ratio: float, color: Color) -> ColorRect:
+	var rect := ColorRect.new()
+	rect.color = color
+	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(rect)
+	rect.anchor_left = left_ratio
+	rect.anchor_right = right_ratio
+	rect.anchor_top = y_ratio
+	rect.anchor_bottom = y_ratio
+	rect.offset_left = 0.0
+	rect.offset_right = 0.0
+	rect.offset_top = -height * 0.5
+	rect.offset_bottom = height * 0.5
+	return rect
+
+
+func _inner_style(bg: Color, border: Color, border_width: int = 2, radius: int = 3) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = bg
+	style.border_color = border
+	style.set_border_width_all(border_width)
+	style.set_corner_radius_all(radius)
+	style.set_content_margin_all(0)
+	return style
+
+
+func _window_style() -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = UI.WOOD_LIGHT
+	style.border_color = UI.WOOD_DARK
+	style.set_border_width_all(4)
+	style.set_corner_radius_all(4)
+	style.set_content_margin_all(0)
+	style.shadow_color = Color(0.0, 0.0, 0.0, 0.30)
+	style.shadow_size = 4
+	style.shadow_offset = Vector2(0, 3)
+	return style
+
+
+func _nest_frame_style() -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = UI.WOOD_LIGHT
+	style.border_color = UI.WOOD_DARK
+	style.set_border_width_all(3)
+	style.set_corner_radius_all(6)
+	style.set_content_margin_all(0)
+	style.shadow_color = Color(0.0, 0.0, 0.0, 0.32)
+	style.shadow_size = 5
+	style.shadow_offset = Vector2(0, 4)
+	return style
+
+
+func _nest_hole_style() -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = NEST_HOLE_BG
+	style.border_color = Color("1c1208")
+	style.set_border_width_all(3)
+	style.set_corner_radius_all(4)
+	style.set_content_margin_all(0)
+	return style
+
+
+func _trough_style(bg: Color, pressed: bool) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = bg
+	style.border_color = UI.WOOD_DARK
+	style.set_border_width_all(3)
+	style.set_corner_radius_all(7)
+	style.set_content_margin_all(4)
+	style.shadow_color = Color(0.08, 0.05, 0.02, 0.35)
+	style.shadow_size = 0 if pressed else 4
+	style.shadow_offset = Vector2.ZERO if pressed else Vector2(0, 4)
+	return style
+
+
+func _chicken_shadow_style() -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = SHADOW_BG
+	style.set_corner_radius_all(8)
+	style.set_content_margin_all(0)
+	return style
+
+
+# ---------------- 小鸡 ----------------
+
+## 直接从 chicken.tscn 里取调好的 SpriteFrames，动画名和帧布局不用在 UI 里重拼。
+## 临时实例化只为了拿资源，取完立刻 free，不进场景树就不会跑小鸡自己的脚本逻辑。
 func _load_chicken_frames() -> SpriteFrames:
 	var temp := CHICKEN_SCENE.instantiate()
 	var animated := temp.get_node_or_null("AnimatedSprite2D") as AnimatedSprite2D
@@ -173,13 +649,21 @@ func _load_chicken_frames() -> SpriteFrames:
 
 
 func _build_chicken(index: int) -> void:
+	# 脚下影子：深色半透明圆角 Panel，跟着脚底坐标走
+	var shadow := Panel.new()
+	shadow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	shadow.add_theme_stylebox_override("panel", _chicken_shadow_style())
+	shadow.z_index = 2
+	shadow.visible = false
+	_arena.add_child(shadow)
+	shadow.size = CHICKEN_SHADOW_SIZE
+
 	var sprite := AnimatedSprite2D.new()
 	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	sprite.scale = Vector2(CHICKEN_SCALE, CHICKEN_SCALE)
-	# 小鸡美术的脚底在 128px 格子里偏下，往上抬一点，让节点原点接近脚底
-	sprite.offset = Vector2(0, -22)
+	sprite.offset = CHICKEN_ART_OFFSET
 	sprite.z_index = 3
-	# 先藏起来：等围栏完成排版、_ensure_chickens_ready 摆好位置再显示，
+	# 先藏起来：等场景排版完成、_ensure_chickens_ready 摆好位置再显示，
 	# 否则打开窗口的第一帧会看到 3 只鸡挤在左上角
 	sprite.visible = false
 	if _chicken_frames != null:
@@ -189,91 +673,19 @@ func _build_chicken(index: int) -> void:
 
 	var view := ChickenView.new()
 	view.sprite = sprite
+	view.shadow = shadow
 	view.speed = randf_range(CHICKEN_SPEED_MIN, CHICKEN_SPEED_MAX)
 	view.facing = -1 if index % 2 == 0 else 1
 	_chickens.append(view)
 
 
-## 鸡窝草垫：纯装饰，托住地上的蛋，让蛋看起来是落在地上而不是浮在半空
-func _build_nest() -> void:
-	var nest := Panel.new()
-	nest.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	nest.anchor_left = 0.50
-	nest.anchor_right = 0.92
-	nest.anchor_top = 0.55
-	nest.anchor_bottom = 0.74
-	nest.offset_left = 0.0
-	nest.offset_right = 0.0
-	nest.offset_top = 0.0
-	nest.offset_bottom = 0.0
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.56, 0.43, 0.21, 1.0)
-	style.border_color = Color(0.33, 0.24, 0.11, 1.0)
-	style.set_border_width_all(3)
-	style.set_corner_radius_all(48)
-	nest.add_theme_stylebox_override("panel", style)
-	# 草垫在最下面：小鸡站在草垫上，蛋在草垫上方
-	nest.z_index = 1
-	_arena.add_child(nest)
-
-
-func _build_eggs() -> void:
-	var egg_icon := ItemDB.icon(CoopState.EGG_ITEM_ID)
-	for index in range(EGG_BUTTON_COUNT):
-		var button := Button.new()
-		button.focus_mode = Control.FOCUS_NONE
-		button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-		button.flat = true
-		button.icon = egg_icon
-		button.expand_icon = true
-		button.add_theme_constant_override("icon_max_width", int(EGG_BUTTON_SIZE.x) - 4)
-		button.tooltip_text = "点击把这枚鸡蛋收进仓库"
-		button.visible = false
-		button.z_index = 2
-		button.pressed.connect(press_collect_egg_at.bind(index))
-		_arena.add_child(button)
-		_place_egg_button(button, index)
-		_egg_buttons.append(button)
-
-
-func _place_egg_button(button: Button, index: int) -> void:
-	var spot: Vector2 = EGG_SPOTS[index % EGG_SPOTS.size()]
-	button.anchor_left = spot.x
-	button.anchor_right = spot.x
-	button.anchor_top = spot.y
-	button.anchor_bottom = spot.y
-	button.offset_left = -EGG_BUTTON_SIZE.x * 0.5
-	button.offset_right = EGG_BUTTON_SIZE.x * 0.5
-	button.offset_top = -EGG_BUTTON_SIZE.y * 0.5
-	button.offset_bottom = EGG_BUTTON_SIZE.y * 0.5
-	button.pivot_offset = EGG_BUTTON_SIZE * 0.5
-
-
-func _build_trough() -> void:
-	_trough_button = Button.new()
-	_trough_button.focus_mode = Control.FOCUS_NONE
-	_trough_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	_trough_button.icon = ItemDB.icon(CoopState.FEED_ITEM_ID)
-	_trough_button.expand_icon = true
-	_trough_button.add_theme_constant_override("icon_max_width", 30)
-	_trough_button.add_theme_font_size_override("font_size", 16)
-	_trough_button.add_theme_color_override("font_color", UI.TEXT_DARK)
-	_trough_button.add_theme_stylebox_override("normal", UI.card_style())
-	var highlight := UI.card_style(true)
-	_trough_button.add_theme_stylebox_override("hover", highlight)
-	_trough_button.add_theme_stylebox_override("pressed", highlight)
-	_trough_button.tooltip_text = "点一下从仓库倒 3 份小麦饲料进食盆"
-	_trough_button.pressed.connect(press_trough)
-	_arena.add_child(_trough_button)
-	# 贴底部中间偏左，和鸡窝错开
-	_trough_button.anchor_left = 0.28
-	_trough_button.anchor_right = 0.66
-	_trough_button.anchor_top = 1.0
-	_trough_button.anchor_bottom = 1.0
-	_trough_button.offset_left = 0.0
-	_trough_button.offset_right = 0.0
-	_trough_button.offset_top = -78.0
-	_trough_button.offset_bottom = -14.0
+## 右侧卡片的鸡头像：从鸡贴图里切一帧，idle / move / eat 各取一帧，三只不重样
+func _chicken_avatar(index: int) -> AtlasTexture:
+	var row_offsets := [0.0, 256.0, 128.0]
+	var atlas := AtlasTexture.new()
+	atlas.atlas = CHICKEN_SHEET
+	atlas.region = Rect2(32.0, float(row_offsets[index % row_offsets.size()]) + 26.0, 64.0, 64.0)
+	return atlas
 
 
 # ---------------- 右边：状态面板 ----------------
@@ -284,44 +696,49 @@ func _build_side_panel(main: HBoxContainer) -> void:
 	right.add_theme_constant_override("separation", 8)
 	main.add_child(right)
 
-	right.add_child(UI.title_label("鸡舍状态", 22))
+	var title_row := HBoxContainer.new()
+	title_row.add_theme_constant_override("separation", 8)
+	right.add_child(title_row)
+	title_row.add_child(UI.title_label("鸡舍状态", 22))
+	var title_spacer := Control.new()
+	title_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_row.add_child(title_spacer)
+	title_row.add_child(UI.chip("%d 只小鸡" % CHICKEN_COUNT, UI.GREEN, 12))
 
-	# 3 只鸡的饥饿条 + 状态文字
-	var chicken_card := _make_card(right)
 	for index in range(CHICKEN_COUNT):
-		_build_chicken_row(chicken_card, index)
+		_build_chicken_card(right, index)
 
-	# 食盆
-	var trough_card := _make_card(right)
-	var trough_header := HBoxContainer.new()
-	trough_header.add_theme_constant_override("separation", 8)
-	trough_card.add_child(trough_header)
-	trough_header.add_child(UI.label("食盆", 18, UI.TEXT_DARK))
-	var trough_spacer := Control.new()
-	trough_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	trough_header.add_child(trough_spacer)
-	_trough_stock_label = UI.label("", 15, UI.TEXT_DARK)
-	trough_header.add_child(_trough_stock_label)
+	# 食槽
+	var feed_card := _make_card(right)
+	var feed_header := HBoxContainer.new()
+	feed_header.add_theme_constant_override("separation", 8)
+	feed_card.add_child(feed_header)
+	feed_header.add_child(UI.label("食槽", 18, UI.INK))
+	var feed_spacer := Control.new()
+	feed_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	feed_header.add_child(feed_spacer)
+	_trough_stock_label = UI.label("", 15, UI.INK)
+	feed_header.add_child(_trough_stock_label)
 	_wheat_label = UI.wrapped_label("", 13)
-	trough_card.add_child(_wheat_label)
-	_fill_button = UI.button("投喂 3 份", 15, 40)
+	feed_card.add_child(_wheat_label)
+	_fill_button = UI.primary_button("投喂 3 份", 15, 40)
 	_fill_button.pressed.connect(press_trough)
-	trough_card.add_child(_fill_button)
+	feed_card.add_child(_fill_button)
 
-	# 鸡蛋
+	# 巢箱里的蛋
 	var egg_card := _make_card(right)
 	var egg_header := HBoxContainer.new()
 	egg_header.add_theme_constant_override("separation", 8)
 	egg_card.add_child(egg_header)
-	egg_header.add_child(UI.label("鸡蛋", 18, UI.TEXT_DARK))
+	egg_header.add_child(UI.label("巢箱鸡蛋", 18, UI.INK))
 	var egg_spacer := Control.new()
 	egg_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	egg_header.add_child(egg_spacer)
-	_ground_eggs_label = UI.label("", 15, UI.TEXT_DARK)
+	_ground_eggs_label = UI.label("", 15, UI.INK)
 	egg_header.add_child(_ground_eggs_label)
 	_collected_label = UI.wrapped_label("", 13)
 	egg_card.add_child(_collected_label)
-	_collect_button = UI.button("一键收蛋", 15, 40)
+	_collect_button = UI.primary_button("一键收蛋", 15, 40)
 	_collect_button.pressed.connect(press_collect_all)
 	egg_card.add_child(_collect_button)
 
@@ -329,7 +746,7 @@ func _build_side_panel(main: HBoxContainer) -> void:
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	right.add_child(spacer)
 	right.add_child(UI.wrapped_label(
-		"鸡蛋要点一下才进仓库；食盆一次最多 9 份。仓库小麦不够时先去农田收小麦。", 13))
+		"鸡蛋要点巢箱里的蛋才收得到；食槽一次最多 9 份，仓库小麦不够时先去农田收小麦。", 13))
 
 
 func _make_card(parent: VBoxContainer) -> VBoxContainer:
@@ -342,33 +759,58 @@ func _make_card(parent: VBoxContainer) -> VBoxContainer:
 	return column
 
 
-func _build_chicken_row(parent: VBoxContainer, index: int) -> void:
-	if index > 0:
-		parent.add_child(HSeparator.new())
+func _build_chicken_card(parent: VBoxContainer, index: int) -> void:
+	var card := PanelContainer.new()
+	card.add_theme_stylebox_override("panel", UI.card_style())
+	parent.add_child(card)
 
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
-	parent.add_child(row)
-
-	var name_label := UI.label(_chicken_display_name(index), 16, UI.TEXT_DARK)
-	name_label.custom_minimum_size.x = 44.0
-	row.add_child(name_label)
-	_chicken_name_labels.append(name_label)
+	row.add_theme_constant_override("separation", 10)
+	card.add_child(row)
+	row.add_child(UI.icon_slot(_chicken_avatar(index), 46.0))
 
 	var column := VBoxContainer.new()
 	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	column.add_theme_constant_override("separation", 2)
+	column.add_theme_constant_override("separation", 4)
 	row.add_child(column)
 
-	var bar := UI.progress_bar(Color(0.42, 0.72, 0.32), HUNGER_BAR_HEIGHT)
-	column.add_child(bar)
-	_chicken_bars.append(bar)
-	# 颜色在 _refresh_chicken_status 里按饥饿值换，先占个位
-	_chicken_fill_styles.append(null)
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 6)
+	column.add_child(head)
+	var name_label := UI.label(_chicken_display_name(index), 16, UI.INK)
+	head.add_child(name_label)
+	var head_spacer := Control.new()
+	head_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(head_spacer)
+	var state_label := UI.label("", 12, UI.INK_SOFT)
+	head.add_child(state_label)
 
-	var state_label := UI.label("", 12, UI.TEXT_SOFT)
-	column.add_child(state_label)
-	_chicken_states.append(state_label)
+	# 饥饿条：越长越饿，颜色按饥饿值换绿 / 橙 / 红
+	var hunger_row := HBoxContainer.new()
+	hunger_row.add_theme_constant_override("separation", 6)
+	column.add_child(hunger_row)
+	var hunger_caption := UI.label("饥饿", 11, UI.INK_SOFT)
+	hunger_caption.custom_minimum_size.x = 22.0
+	hunger_row.add_child(hunger_caption)
+	var hunger_bar := UI.growth_bar(UI.GREEN, 0.0, 8.0)
+	hunger_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hunger_row.add_child(hunger_bar)
+
+	# 产蛋进度：金色细条
+	var lay_row := HBoxContainer.new()
+	lay_row.add_theme_constant_override("separation", 6)
+	column.add_child(lay_row)
+	var lay_caption := UI.label("产蛋", 11, UI.INK_SOFT)
+	lay_caption.custom_minimum_size.x = 22.0
+	lay_row.add_child(lay_caption)
+	var lay_bar := UI.growth_bar(UI.GOLD, 0.0, 5.0)
+	lay_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	lay_row.add_child(lay_bar)
+
+	_chicken_name_labels.append(name_label)
+	_chicken_state_labels.append(state_label)
+	_chicken_hunger_bars.append(hunger_bar)
+	_chicken_lay_bars.append(lay_bar)
 
 
 # ---------------- 刷新 ----------------
@@ -377,44 +819,39 @@ func _refresh() -> void:
 	if _trough_button == null:
 		return
 
-	# 食盆
+	# 食槽：场景里的木槽 + 右侧卡片
 	var stock := CoopState.trough_stock
 	var stock_text := "饲料 %d/%d" % [stock, CoopState.TROUGH_MAX]
-	_trough_button.text = stock_text
+	_trough_label.text = stock_text
 	_trough_stock_label.text = stock_text
 	var wheat := Inventory.get_amount(CoopState.FEED_ITEM_ID)
 	_wheat_label.text = "仓库小麦：%d 份" % wheat
 	_fill_button.disabled = stock >= CoopState.TROUGH_MAX or wheat <= 0
 
-	# 鸡蛋
-	_ground_eggs_label.text = "%d/%d 枚" % [
+	# 巢箱里的蛋
+	_ground_eggs_label.text = "%d / %d 枚" % [
 		CoopState.eggs_on_ground, CoopState.MAX_EGGS_ON_GROUND]
 	_collected_label.text = "累计收蛋：%d 枚" % CoopState.total_collected
 	_collect_button.disabled = CoopState.eggs_on_ground <= 0
 	_sync_egg_buttons()
 
-	# 鸡只状态
 	for index in range(_chicken_name_labels.size()):
 		_chicken_name_labels[index].text = _chicken_display_name(index)
+
 	_refresh_chicken_status()
 
 
 func _refresh_chicken_status() -> void:
-	for index in range(_chicken_bars.size()):
+	for index in range(_chicken_state_labels.size()):
 		var hunger := _hunger_of(index)
-		_chicken_bars[index].value = hunger
-		var color := _hunger_color(hunger)
-		var fill_style := _chicken_fill_styles[index]
-		if fill_style == null or fill_style.bg_color != color:
-			# 直接换一份 StyleBoxFlat 再挂回主题，比改旧样式更稳：
-			# 进度条在 headless/窗口下都会立刻重绘成新颜色。
-			var new_style := StyleBoxFlat.new()
-			new_style.bg_color = color
-			new_style.set_corner_radius_all(4)
-			_chicken_bars[index].add_theme_stylebox_override("fill", new_style)
-			_chicken_fill_styles[index] = new_style
+		var hunger_bar = _chicken_hunger_bars[index]
+		hunger_bar.call("set_progress", clampf(hunger / CoopState.HUNGER_MAX, 0.0, 1.0))
+		hunger_bar.call("set_fill_color", _hunger_color(hunger))
+		var lay_bar = _chicken_lay_bars[index]
+		var lay_progress := 0.0 if CoopState.lay_blocked(index) else CoopState.lay_progress(index)
+		lay_bar.call("set_progress", lay_progress)
 		var state_text := _chicken_state_text(index)
-		var state_label := _chicken_states[index]
+		var state_label: Label = _chicken_state_labels[index]
 		if state_label.text != state_text:
 			state_label.text = state_text
 			state_label.add_theme_color_override("font_color", _chicken_state_color(index))
@@ -432,8 +869,9 @@ func _sync_egg_buttons() -> void:
 			button.visible = false
 
 
-## 新蛋落地时做一个小弹跳，避免数字变了但画面没变化
+## 新蛋落地时做一个小弹跳，避免数字变了但巢箱里没变化
 func _pop_egg(button: Button) -> void:
+	button.pivot_offset = EGG_BUTTON_SIZE * 0.5
 	button.scale = Vector2(0.35, 0.35)
 	var tween := create_tween()
 	tween.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
@@ -467,50 +905,52 @@ func _chicken_state_text(index: int) -> String:
 
 func _chicken_state_color(index: int) -> Color:
 	if index < _chickens.size() and int(_chickens[index].mode) == MODE_EAT:
-		return FEEDBACK_OK
-	if CoopState.lay_blocked(index) or CoopState.hungry(index):
-		return FEEDBACK_WARN
-	return UI.TEXT_SOFT
+		return UI.GREEN_DARK
+	if CoopState.lay_blocked(index):
+		return UI.RED
+	if CoopState.hungry(index):
+		return UI.GOLD_DARK
+	return UI.INK_SOFT
 
 
 func _hunger_color(hunger: float) -> Color:
 	if hunger >= CoopState.LAY_HUNGER_LIMIT:
-		return Color(0.80, 0.25, 0.18)
+		return UI.RED
 	if hunger >= CoopState.HUNGRY_AT:
-		return Color(0.88, 0.52, 0.18)
-	return Color(0.42, 0.72, 0.32)
+		return UI.GOLD
+	return UI.GREEN
 
 
 # ---------------- 操作 ----------------
 
-## 点食盆 / 点「投喂 3 份」：从仓库扣小麦倒进食盆。
-## 返回实际倒进去的份数（0 = 仓库没小麦或食盆已满）。
+## 点食槽 / 点「投喂 3 份」：从仓库扣小麦倒进食槽。
+## 返回实际倒进去的份数（0 = 仓库没小麦或食槽已满）。
 func press_trough() -> int:
 	var filled := CoopState.fill_trough(3)
 	if filled > 0:
-		show_feedback("倒进 %d 份小麦饲料，食盆现在 %d/%d。" % [
-			filled, CoopState.trough_stock, CoopState.TROUGH_MAX], FEEDBACK_OK)
+		show_feedback("倒进 %d 份小麦饲料，食槽现在 %d/%d。" % [
+			filled, CoopState.trough_stock, CoopState.TROUGH_MAX], UI.GREEN_DARK)
 	elif CoopState.trough_stock >= CoopState.TROUGH_MAX:
-		show_feedback("食盆已经装满了（%d/%d），等小鸡吃一些再倒。" % [
-			CoopState.trough_stock, CoopState.TROUGH_MAX], FEEDBACK_WARN)
+		show_feedback("食槽已经装满了（%d/%d），等小鸡吃一些再倒。" % [
+			CoopState.trough_stock, CoopState.TROUGH_MAX], UI.GOLD_DARK)
 	else:
-		show_feedback("仓库里没有小麦了，先去农田收小麦再回仓库拿。", FEEDBACK_WARN)
+		show_feedback("仓库里没有小麦了，先去农田收小麦再回仓库拿。", UI.RED)
 	_refresh()
 	return filled
 
 
-## 点「一键收蛋」：把地上的蛋全部入库，返回入库数量。
+## 点「一键收蛋」：把巢箱里的蛋全部入库，返回入库数量。
 func press_collect_all() -> int:
 	var collected := CoopState.collect_all()
 	if collected > 0:
-		show_feedback("一键收蛋：%d 枚鸡蛋已入库。" % collected, FEEDBACK_OK)
+		show_feedback("一键收蛋：%d 枚鸡蛋已入库。" % collected, UI.GREEN_DARK)
 	else:
-		show_feedback("地上暂时没有鸡蛋。", FEEDBACK_WARN)
+		show_feedback("巢箱里暂时没有鸡蛋。", UI.GOLD_DARK)
 	_refresh()
 	return collected
 
 
-## 点第 index 枚蛋：成功入库返回 1，否则返回 0。
+## 点第 index 枚蛋：成功入库返回 1，否则返回 0（只收一枚，防重复点击）。
 func press_collect_egg_at(index: int) -> int:
 	_sync_egg_buttons()
 	var available := mini(CoopState.eggs_on_ground, EGG_BUTTON_COUNT)
@@ -522,8 +962,8 @@ func press_collect_egg_at(index: int) -> int:
 	var collected := CoopState.collect_egg()
 	if collected > 0:
 		if index < _egg_buttons.size():
-			_float_text(_egg_buttons[index], "+1", Color(1.0, 0.86, 0.3))
-		show_feedback("收了一枚鸡蛋，已入库（+1）", FEEDBACK_OK)
+			_float_text(_egg_buttons[index], "+1", UI.GOLD)
+		show_feedback("收了一枚鸡蛋，已入库（+1）", UI.GREEN_DARK)
 	_refresh()
 	return collected
 
@@ -557,7 +997,7 @@ func _process(delta: float) -> void:
 		return
 	_ensure_chickens_ready()
 	_update_chickens(delta)
-	# 饥饿值每帧都在涨，进度条必须每帧刷新
+	# 饥饿值每帧都在涨，条形进度必须每帧刷新
 	_refresh_chicken_status()
 
 
@@ -572,14 +1012,16 @@ func _ensure_chickens_ready() -> void:
 		var view: ChickenView = _chickens[index]
 		var t := 0.25 + 0.25 * float(index)
 		view.pos = Vector2(
-			lerpf(bounds.position.x + 48.0, bounds.end.x - 48.0, t),
-			lerpf(bounds.position.y + 20.0, bounds.end.y - 20.0, 0.5 + 0.2 * float(index % 2)))
+			lerpf(bounds.position.x + 56.0, bounds.end.x - 56.0, t),
+			lerpf(bounds.position.y + 26.0, bounds.end.y - 46.0, 0.34 + 0.22 * float(index % 2)))
 		view.target = view.pos
 		view.mode = MODE_IDLE
 		view.timer = 0.6 + 0.4 * float(index)
 		view.facing = 1 if index % 2 == 0 else -1
 		view.sprite.visible = true
 		view.sprite.position = view.pos
+		view.shadow.visible = true
+		view.shadow.position = view.pos - CHICKEN_SHADOW_SIZE * 0.5
 		_play_anim(view, "idle")
 
 
@@ -632,15 +1074,15 @@ func _update_chicken(index: int, view: ChickenView, bounds: Rect2, delta: float)
 
 func _start_eating(index: int, view: ChickenView, eat_point: Vector2) -> void:
 	if not CoopState.feed_chicken(index):
-		# 走到时食盆已经被别的鸡吃空了：重新溜达，等玩家再投喂
+		# 走到时食槽已经被别的鸡吃空了：重新溜达，等玩家再投喂
 		_pick_wander_target(view, _walk_bounds())
 		return
 	view.facing = 1 if eat_point.x >= view.pos.x else -1
 	view.mode = MODE_EAT
 	view.timer = EAT_SECONDS
 	_play_anim(view, "eat")
-	show_feedback("%s 吃了一份饲料，食盆还剩 %d 份。" % [
-		_chicken_display_name(index), CoopState.trough_stock], FEEDBACK_OK)
+	show_feedback("%s 在食槽吃了一份饲料，还剩 %d 份。" % [
+		_chicken_display_name(index), CoopState.trough_stock], UI.GREEN_DARK)
 
 
 func _should_seek(index: int) -> bool:
@@ -655,28 +1097,30 @@ func _walk_towards(view: ChickenView, point: Vector2, delta: float) -> void:
 	view.facing = 1 if offset.x > 0.0 else -1
 	view.pos += offset / distance * minf(view.speed * delta, distance)
 	view.sprite.position = view.pos
+	view.shadow.position = view.pos - CHICKEN_SHADOW_SIZE * 0.5
 
 
 func _pick_wander_target(view: ChickenView, bounds: Rect2) -> void:
 	view.target = Vector2(
 		randf_range(bounds.position.x + 24.0, bounds.end.x - 24.0),
-		randf_range(bounds.position.y + 18.0, bounds.end.y - 18.0))
+		randf_range(bounds.position.y + 16.0, bounds.end.y - 16.0))
 	if view.target.distance_to(view.pos) < 80.0:
-		view.target += Vector2(randf_range(-60.0, 60.0), randf_range(-20.0, 20.0))
+		view.target += Vector2(randf_range(-60.0, 60.0), randf_range(-16.0, 16.0))
 	view.mode = MODE_WANDER
 
 
 func _apply_chicken_position(view: ChickenView, bounds: Rect2) -> void:
-	var margin := 28.0
+	var margin := 24.0
 	view.pos.x = clampf(view.pos.x, bounds.position.x + margin, bounds.end.x - margin)
 	view.pos.y = clampf(view.pos.y, bounds.position.y + margin, bounds.end.y - margin)
 	view.sprite.position = view.pos
+	view.shadow.position = view.pos - CHICKEN_SHADOW_SIZE * 0.5
 
 
 func _walk_bounds() -> Rect2:
 	var area_size := _arena.size
-	var top := area_size.y * WALK_TOP_RATIO
-	var bottom := area_size.y * WALK_BOTTOM_RATIO
+	var top := area_size.y * WALL_RATIO + WALK_TOP_PADDING
+	var bottom := area_size.y - WALK_BOTTOM_PADDING
 	return Rect2(
 		WALK_SIDE_MARGIN,
 		top,
@@ -684,14 +1128,16 @@ func _walk_bounds() -> Rect2:
 		maxf(bottom - top, 90.0))
 
 
-## 鸡吃饭时站的位置：食盆正上方、每只鸡左右错开一点，避免叠在一起
+## 鸡吃饭时站的位置：食槽正上方、每只鸡左右错开一点，避免叠在一起
 func _trough_eat_point(index: int) -> Vector2:
 	var bounds := _walk_bounds()
-	var x := bounds.position.x + bounds.size.x * 0.5
+	var center_x := bounds.position.x + bounds.size.x * 0.5
+	var stand_y := bounds.end.y - 2.0
 	if _trough_button != null and _trough_button.size.x > 1.0:
-		x = _trough_button.position.x + _trough_button.size.x * 0.5
-	var spread := (float(index) - float(CHICKEN_COUNT - 1) * 0.5) * 56.0
-	return Vector2(x + spread, bounds.end.y - 6.0)
+		center_x = _trough_button.position.x + _trough_button.size.x * 0.5
+		stand_y = _trough_button.position.y - 6.0
+	var spread := (float(index) - float(CHICKEN_COUNT - 1) * 0.5) * 52.0
+	return Vector2(center_x + spread, clampf(stand_y, bounds.position.y, bounds.end.y))
 
 
 func _play_anim(view: ChickenView, kind: String) -> void:
@@ -703,16 +1149,19 @@ func _play_anim(view: ChickenView, kind: String) -> void:
 		view.sprite.play(animation)
 
 
-## 收蛋时在蛋上方冒一个「+1」
+## 收蛋时在蛋上方冒一个「+1」；蛋按钮嵌在巢箱里，要先换回场景局部坐标
 func _float_text(anchor: Control, text_value: String, color: Color) -> void:
 	if _arena == null:
 		return
+	var center := anchor.get_global_rect().get_center()
+	var local := _arena.get_global_transform().affine_inverse() * center
 	var label := UI.label(text_value, 20, color)
 	label.add_theme_color_override("font_outline_color", Color(0.08, 0.05, 0.02, 1.0))
 	label.add_theme_constant_override("outline_size", 4)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	label.position = anchor.position - Vector2(40.0, 26.0)
+	label.z_index = 9
+	label.position = local - Vector2(48.0, 34.0)
 	label.size = Vector2(96.0, 28.0)
 	_arena.add_child(label)
 	var tween := create_tween()
@@ -725,7 +1174,7 @@ func _float_text(anchor: Control, text_value: String, color: Color) -> void:
 # ---------------- 生命周期 ----------------
 
 func _on_open() -> void:
-	# 窗口打开时由界面接管进食：鸡要「走到食盆」才吃到，数据层就不再自动喂。
+	# 窗口打开时由界面接管进食：鸡要「走到食槽」才吃到，数据层就不再自动喂。
 	CoopState.ui_active = true
 	_refresh()
 	_ensure_chickens_ready.call_deferred()
