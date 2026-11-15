@@ -2,8 +2,8 @@ extends "res://scripts/ui/building_window_base.gd"
 ## 鸡舍建筑独立页面（星露谷式鸡舍内部）。
 ##
 ## 场景不再是一块绿色网格 + 几张图标，而是「木墙 + 木地板」的室内：
-##   上方 34% 是钉着 3 个稻草巢箱的木板墙，下方 66% 是鸡活动 / 食槽所在的木地板；
-##   鸡蛋只出现在巢箱里，且必须由小鸡自己走到巢箱、蹲下之后才出现（不会凭空生成）。
+##   上方 34% 是木板墙（小窗），下方 66% 是鸡活动 / 食槽所在的木地板；
+##   鸡蛋由小鸡自己走到指定地板位置、蹲下之后掉在脚边（不会在固定槽里凭空生成）。
 ## 数值仍全部在 CoopState autoload 里，本页只画场景 + 把点击转成数据操作。
 ## 窗口打开时 CoopState.ui_active = true，由本页 _process 驱动鸡走到食槽进食；
 ## 窗口关闭后交还数据层自动进食，保证关掉建筑界面时蛋也在慢慢产出。
@@ -15,8 +15,6 @@ const GRASS_TUFT := preload("res://assets/sprites/decorations/grass_tuft.png")
 # ---------------- 场景尺寸 ----------------
 const CHICKEN_COUNT: int = 3
 const EGG_BUTTON_COUNT: int = 6
-const EGGS_PER_NEST: int = 2
-const NEST_COUNT: int = 3
 const EGG_BUTTON_SIZE := Vector2(38.0, 38.0)
 const EGG_ICON_MAX_WIDTH: int = 34
 ## 上方木板墙占场景高度的比例
@@ -29,7 +27,7 @@ const SIDE_PANEL_WIDTH: float = 340.0
 
 # ---------------- 小鸡 ----------------
 ## 帧图是 128x128，但小鸡美术只占中间约 48x53 像素；
-## 0.92 时视觉高度约 49px，和巢箱、鸡蛋（36px）比例合适（旧版 0.68 明显偏小）。
+## 0.92 时视觉高度约 49px，和鸡蛋（36px）比例合适（旧版 0.68 明显偏小）。
 const CHICKEN_SCALE: float = 0.98
 ## 帧内脚底在 y≈84、帧中心 64：-20 让节点原点落回脚底，站姿和影子都用脚底坐标
 const CHICKEN_ART_OFFSET := Vector2(0.0, -20.0)
@@ -51,18 +49,21 @@ const FLOOR_BASE := Color("9a7245")
 const FLOOR_SEAM := Color("6b4a28")
 const FLOOR_GRAIN := Color(0.22, 0.13, 0.05, 0.20)
 const BASEBOARD := Color("4a3419")
-const NEST_HOLE_BG := Color("372413")
 const STRAW := Color("d9b64e")
 const STRAW_DARK := Color("a9842f")
 const WATER := Color("6fa7c4")
 const SHADOW_BG := Color(0.10, 0.06, 0.02, 0.30)
 
 # ---------------- 场景布局（比例坐标，窗口缩放时自动跟随） ----------------
-## 3 个巢箱在墙上横排：x / y / 宽 / 高 都是场景宽高的比例
-const NEST_RECTS := [
-	Rect2(0.155, 0.055, 0.225, 0.255),
-	Rect2(0.415, 0.055, 0.225, 0.255),
-	Rect2(0.675, 0.055, 0.225, 0.255),
+## 6 个可以落蛋的木地板位置（比例坐标）：鸡会走到这里蹲下，蛋掉在脚边。
+## 避开左下角食槽和小水盆，尽量铺开在鸡舍中间偏右。
+const EGG_FLOOR_SPOTS := [
+	Vector2(0.40, 0.56),
+	Vector2(0.55, 0.53),
+	Vector2(0.70, 0.60),
+	Vector2(0.46, 0.80),
+	Vector2(0.62, 0.86),
+	Vector2(0.78, 0.76),
 ]
 ## 地板上的木纹，让木地板不至于平得像纯色色块
 const FLOOR_GRAIN_RECTS := [
@@ -105,9 +106,9 @@ const MODE_WANDER: int = 0
 const MODE_SEEK: int = 1
 const MODE_EAT: int = 2
 const MODE_IDLE: int = 3
-const MODE_TO_NEST: int = 4
+const MODE_TO_SPOT: int = 4
 const MODE_LAY: int = 5
-## 走到巢箱后蹲下到蛋出现的时间
+## 走到下蛋点、蹲下到蛋出现的时间
 const LAY_SECONDS: float = 1.8
 
 
@@ -122,19 +123,20 @@ class ChickenView:
 	var facing: int = 1
 	var mode: int = 0
 	var timer: float = 0.0
-	var nest_index: int = -1
+	var lay_slot: int = -1
 
 
 var _arena: Control = null
 var _trough_button: Button = null
 var _trough_label: Label = null
 var _egg_buttons: Array[Button] = []
+var _egg_shadows: Array[Panel] = []
 var _chicken_frames: SpriteFrames = null
 var _chickens: Array = []
 var _chickens_initialized: bool = false
-## 同一时间只让一只鸡去下蛋，避免两只鸡抢一个巢箱 / 蛋位顺序错乱
+## 同一时间只让一只鸡去下蛋，避免两只鸡抢位置 / 蛋位顺序错乱
 var _laying_chicken: int = -1
-var _laying_nest: int = -1
+var _laying_slot: int = -1
 
 # 右侧状态面板
 var _chicken_name_labels: Array[Label] = []
@@ -156,7 +158,7 @@ func page_title() -> String:
 
 
 func page_hint() -> String:
-	return "点食槽投喂 · 鸡饿了自己来吃 · 点巢箱里的蛋收进仓库 · Esc 返回建筑"
+	return "点食槽投喂 · 鸡饿了自己来吃 · 点木地板上的蛋收进仓库 · Esc 返回建筑"
 
 
 func _build_body(parent: VBoxContainer) -> void:
@@ -168,7 +170,7 @@ func _build_body(parent: VBoxContainer) -> void:
 	_build_arena(main)
 	_build_side_panel(main)
 
-	# 数据层任何变化（投喂 / 吃食 / 产蛋 / 收蛋）都刷新右侧数字和巢箱里的蛋
+	# 数据层任何变化（投喂 / 吃食 / 产蛋 / 收蛋）都刷新右侧数字和地板上的蛋
 	CoopState.changed.connect(_refresh)
 	_refresh()
 
@@ -194,7 +196,7 @@ func _build_arena(main: HBoxContainer) -> void:
 	panel.add_child(_arena)
 
 	_build_coop_room()
-	_build_nest_row()
+	_build_egg_field()
 	_build_trough()
 	_build_water_bowl()
 	_build_floor_decor()
@@ -209,7 +211,7 @@ func _build_arena(main: HBoxContainer) -> void:
 	_arena.add_child(vignette)
 
 	left.add_child(UI.wrapped_label(
-		"小鸡只在木地板上活动，饿了会走到左下角食槽；鸡蛋落在巢箱里，点一下才收进仓库。", 13))
+		"小鸡只在木地板上活动，饿了会走到左下角食槽；下蛋时会自己找块地板蹲下，蛋掉在脚边，点一下收进仓库。", 13))
 
 
 ## 木板墙 + 木地板 + 踢脚线 + 小窗，全部用色块拼，不依赖草地 / 泥地贴图
@@ -281,91 +283,61 @@ func _build_window() -> void:
 	_add_hline(_arena, 0.268, 2.0, 0.012, 0.130, Color(0.0, 0.0, 0.0, 0.35))
 
 
-## 墙上的 3 个巢箱 + 托板；巢箱里铺稻草，2 个蛋位对应地上的蛋
-func _build_nest_row() -> void:
-	# 木托板：让 3 个巢箱看起来是固定在墙上的架子
-	_add_rect(_arena, UI.WOOD, Rect2(0.135, 0.302, 0.800, 0.018))
-	_add_hline(_arena, 0.302, 2.0, 0.135, 0.935, Color(1.0, 0.90, 0.70, 0.25))
-	_add_hline(_arena, 0.320, 3.0, 0.135, 0.935, Color(0.0, 0.0, 0.0, 0.30))
+## 地板上 6 个落蛋点：蛋只出现在这些位置，且必须由鸡走过去蹲下后才出现
+func _build_egg_field() -> void:
+	for index in range(EGG_BUTTON_COUNT):
+		# 地板上的小影子：让蛋看起来是放在木地板上，而不是浮在画面里
+		var shadow := Panel.new()
+		shadow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		shadow.add_theme_stylebox_override("panel", _egg_shadow_style())
+		shadow.z_index = 1
+		_arena.add_child(shadow)
+		_place_egg_shadow(shadow, index)
+		_egg_shadows.append(shadow)
 
-	for index in range(NEST_COUNT):
-		_build_nest(index)
-
-
-func _build_nest(index: int) -> void:
-	var nest := Panel.new()
-	nest.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	nest.add_theme_stylebox_override("panel", _nest_frame_style())
-	_arena.add_child(nest)
-	_apply_anchor_rect(nest, NEST_RECTS[index])
-
-	# 深色内洞：蛋就落在这一层稻草上
-	var inner := Panel.new()
-	inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	inner.add_theme_stylebox_override("panel", _nest_hole_style())
-	nest.add_child(inner)
-	_apply_anchor_rect(inner, Rect2(0.055, 0.13, 0.89, 0.76))
-
-	# 内洞上缘：一条木沿高光 + 两层阴影，让巢箱看起来是「往里凹」的盒子
-	_add_rect(inner, Color(1.0, 0.86, 0.58, 0.12), Rect2(0.0, 0.0, 1.0, 0.06))
-	_add_rect(inner, Color(0.0, 0.0, 0.0, 0.38), Rect2(0.0, 0.06, 1.0, 0.14))
-	_add_rect(inner, Color(0.0, 0.0, 0.0, 0.16), Rect2(0.0, 0.20, 1.0, 0.10))
-
-	# 稻草层：几层深浅不同的草垫 + 细草秆 + 两侧草簇，铺满巢箱下半部分
-	_add_rect(inner, Color("73541f"), Rect2(0.02, 0.54, 0.96, 0.36))
-	_add_rect(inner, STRAW_DARK, Rect2(0.03, 0.60, 0.94, 0.27))
-	_add_rect(inner, STRAW, Rect2(0.05, 0.65, 0.90, 0.19))
-	_add_rect(inner, Color(1.0, 0.90, 0.50, 0.30), Rect2(0.07, 0.67, 0.86, 0.05))
-	for straw_index in range(12):
-		var straw := ColorRect.new()
-		straw.color = Color("e7c75a") if straw_index % 2 == 0 else STRAW_DARK
-		straw.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		inner.add_child(straw)
-		_apply_anchor_rect(straw, Rect2(
-			0.04 + 0.082 * float(straw_index),
-			0.58 + 0.035 * float(straw_index % 4),
-			0.11, 0.032))
-		straw.rotation = (float(straw_index % 3) - 1.0) * 0.12
-	_add_nest_tuft(inner, 0.13, 0.78, 58.0)
-	_add_nest_tuft(inner, 0.85, 0.76, 64.0)
-	# 巢箱前缘木沿：强化「箱子有厚度」，蛋看起来是落在箱底
-	_add_rect(inner, UI.WOOD_LIGHT, Rect2(0.0, 0.93, 1.0, 0.07))
-	_add_hline(inner, 0.93, 2.0, 0.0, 1.0, Color(0.0, 0.0, 0.0, 0.35))
-
-	# 每个巢箱 2 个蛋位；蛋只会出现在这里
-	for slot in range(EGGS_PER_NEST):
-		var egg_index := index * EGGS_PER_NEST + slot
-		var button := _create_egg_button(egg_index)
-		inner.add_child(button)
-		var anchor_x := 0.32 + 0.36 * float(slot)
-		button.anchor_left = anchor_x
-		button.anchor_right = anchor_x
-		button.anchor_top = 0.50
-		button.anchor_bottom = 0.50
-		button.offset_left = -EGG_BUTTON_SIZE.x * 0.5
-		button.offset_right = EGG_BUTTON_SIZE.x * 0.5
-		button.offset_top = -EGG_BUTTON_SIZE.y * 0.5
-		button.offset_bottom = EGG_BUTTON_SIZE.y * 0.5
+		var button := _create_egg_button(index)
+		_arena.add_child(button)
+		_place_egg_on_floor(button, index)
 
 
-func _add_nest_tuft(parent: Control, x_ratio: float, y_ratio: float, width: float) -> void:
-	var tuft := TextureRect.new()
-	tuft.texture = GRASS_TUFT
-	tuft.modulate = STRAW
-	tuft.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	tuft.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	tuft.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	tuft.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	parent.add_child(tuft)
-	tuft.anchor_left = x_ratio
-	tuft.anchor_right = x_ratio
-	tuft.anchor_top = y_ratio
-	tuft.anchor_bottom = y_ratio
-	tuft.offset_left = -width * 0.5
-	tuft.offset_right = width * 0.5
-	tuft.offset_top = -width * 0.125
-	tuft.offset_bottom = width * 0.125
-	tuft.rotation = (0.12 if x_ratio < 0.5 else -0.10)
+func _place_egg_on_floor(button: Button, index: int) -> void:
+	var spot: Vector2 = EGG_FLOOR_SPOTS[index % EGG_FLOOR_SPOTS.size()]
+	button.anchor_left = spot.x
+	button.anchor_right = spot.x
+	button.anchor_top = spot.y
+	button.anchor_bottom = spot.y
+	button.offset_left = -EGG_BUTTON_SIZE.x * 0.5
+	button.offset_right = EGG_BUTTON_SIZE.x * 0.5
+	button.offset_top = -EGG_BUTTON_SIZE.y * 0.5
+	button.offset_bottom = EGG_BUTTON_SIZE.y * 0.5
+	button.pivot_offset = EGG_BUTTON_SIZE * 0.5
+	button.z_index = 2
+
+
+func _place_egg_shadow(shadow: Panel, index: int) -> void:
+	var spot: Vector2 = EGG_FLOOR_SPOTS[index % EGG_FLOOR_SPOTS.size()]
+	shadow.anchor_left = spot.x
+	shadow.anchor_right = spot.x
+	shadow.anchor_top = spot.y
+	shadow.anchor_bottom = spot.y
+	shadow.offset_left = -17.0
+	shadow.offset_right = 17.0
+	shadow.offset_top = 10.0
+	shadow.offset_bottom = 18.0
+
+
+func _egg_shadow_style() -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.10, 0.07, 0.03, 0.22)
+	style.set_corner_radius_all(5)
+	style.set_content_margin_all(0)
+	return style
+
+
+## 第 index 个落蛋点在地板上的像素坐标
+func _egg_floor_point(index: int) -> Vector2:
+	var spot: Vector2 = EGG_FLOOR_SPOTS[clampi(index, 0, EGG_FLOOR_SPOTS.size() - 1)]
+	return Vector2(spot.x * _arena.size.x, spot.y * _arena.size.y)
 
 
 func _create_egg_button(index: int) -> Button:
@@ -598,29 +570,6 @@ func _window_style() -> StyleBoxFlat:
 	return style
 
 
-func _nest_frame_style() -> StyleBoxFlat:
-	var style := StyleBoxFlat.new()
-	style.bg_color = UI.WOOD_LIGHT
-	style.border_color = UI.WOOD_DARK
-	style.set_border_width_all(3)
-	style.set_corner_radius_all(6)
-	style.set_content_margin_all(0)
-	style.shadow_color = Color(0.0, 0.0, 0.0, 0.32)
-	style.shadow_size = 5
-	style.shadow_offset = Vector2(0, 4)
-	return style
-
-
-func _nest_hole_style() -> StyleBoxFlat:
-	var style := StyleBoxFlat.new()
-	style.bg_color = NEST_HOLE_BG
-	style.border_color = Color("1c1208")
-	style.set_border_width_all(3)
-	style.set_corner_radius_all(4)
-	style.set_content_margin_all(0)
-	return style
-
-
 func _trough_style(bg: Color, pressed: bool) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = bg
@@ -739,12 +688,12 @@ func _build_side_panel(main: HBoxContainer) -> void:
 		debug_gift.pressed.connect(_debug_gift_wheat)
 		feed_card.add_child(debug_gift)
 
-	# 巢箱里的蛋
+	# 地板上的蛋
 	var egg_card := _make_card(right)
 	var egg_header := HBoxContainer.new()
 	egg_header.add_theme_constant_override("separation", 8)
 	egg_card.add_child(egg_header)
-	egg_header.add_child(UI.label("巢箱鸡蛋", 18, UI.INK))
+	egg_header.add_child(UI.label("地板上的鸡蛋", 18, UI.INK))
 	var egg_spacer := Control.new()
 	egg_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	egg_header.add_child(egg_spacer)
@@ -760,7 +709,7 @@ func _build_side_panel(main: HBoxContainer) -> void:
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	right.add_child(spacer)
 	right.add_child(UI.wrapped_label(
-		"鸡蛋要点巢箱里的蛋才收得到；食槽一次最多 9 份，仓库小麦不够时先去农田收小麦。", 13))
+		"鸡蛋要点地板上的蛋才收得到；食槽一次最多 9 份，仓库小麦不够时先去农田收小麦。", 13))
 
 
 func _make_card(parent: VBoxContainer) -> VBoxContainer:
@@ -842,7 +791,7 @@ func _refresh() -> void:
 	_wheat_label.text = "仓库小麦：%d 份" % wheat
 	_fill_button.disabled = stock >= CoopState.TROUGH_MAX or wheat <= 0
 
-	# 巢箱里的蛋
+	# 地板上的蛋
 	_ground_eggs_label.text = "%d / %d 枚" % [
 		CoopState.eggs_on_ground, CoopState.MAX_EGGS_ON_GROUND]
 	_collected_label.text = "累计收蛋：%d 枚" % CoopState.total_collected
@@ -881,9 +830,11 @@ func _sync_egg_buttons() -> void:
 			_pop_egg(button)
 		elif not should_show and button.visible:
 			button.visible = false
+		if index < _egg_shadows.size():
+			_egg_shadows[index].visible = should_show
 
 
-## 新蛋落地时做一个小弹跳，避免数字变了但巢箱里没变化
+## 新蛋落地时做一个小弹跳，避免数字变了但画面上没变化
 func _pop_egg(button: Button) -> void:
 	button.pivot_offset = EGG_BUTTON_SIZE * 0.5
 	button.scale = Vector2(0.35, 0.35)
@@ -911,8 +862,8 @@ func _chicken_state_text(index: int) -> String:
 	var mode := int(_chickens[index].mode) if index >= 0 and index < _chickens.size() else -1
 	if mode == MODE_LAY:
 		return "正在下蛋…"
-	if mode == MODE_TO_NEST:
-		return "去巢箱"
+	if mode == MODE_TO_SPOT:
+		return "去下蛋"
 	if mode == MODE_EAT:
 		return "正在吃"
 	if CoopState.lay_blocked(index):
@@ -926,7 +877,7 @@ func _chicken_state_color(index: int) -> Color:
 	var mode := int(_chickens[index].mode) if index >= 0 and index < _chickens.size() else -1
 	if mode == MODE_EAT:
 		return UI.GREEN_DARK
-	if mode == MODE_LAY or mode == MODE_TO_NEST:
+	if mode == MODE_LAY or mode == MODE_TO_SPOT:
 		return UI.GOLD_DARK
 	if CoopState.lay_blocked(index):
 		return UI.RED
@@ -970,13 +921,13 @@ func _debug_gift_wheat() -> void:
 	_refresh()
 
 
-## 点「一键收蛋」：把巢箱里的蛋全部入库，返回入库数量。
+## 点「一键收蛋」：把地板上的蛋全部入库，返回入库数量。
 func press_collect_all() -> int:
 	var collected := CoopState.collect_all()
 	if collected > 0:
 		show_feedback("一键收蛋：%d 枚鸡蛋已入库。" % collected, UI.GREEN_DARK)
 	else:
-		show_feedback("巢箱里暂时没有鸡蛋。", UI.GOLD_DARK)
+		show_feedback("地板上暂时没有鸡蛋。", UI.GOLD_DARK)
 	_refresh()
 	return collected
 
@@ -1072,11 +1023,11 @@ func _update_chicken(index: int, view: ChickenView, bounds: Rect2, delta: float)
 			view.timer -= delta
 			if view.timer <= 0.0:
 				_finish_laying(index, view)
-		MODE_TO_NEST:
+		MODE_TO_SPOT:
 			if not CoopState.lay_ready(index):
 				_abort_laying(index, view)
 			else:
-				var nest_point := _nest_lay_point(int(view.nest_index))
+				var nest_point := _lay_spot_point(int(view.lay_slot))
 				if view.pos.distance_to(nest_point) <= ARRIVE_DISTANCE:
 					_start_laying(index, view)
 				else:
@@ -1143,38 +1094,35 @@ func _try_start_laying(index: int, view: ChickenView) -> bool:
 		return false
 	if CoopState.eggs_on_ground >= CoopState.MAX_EGGS_ON_GROUND:
 		return false
-	var nest := clampi(floori(float(CoopState.eggs_on_ground) / float(EGGS_PER_NEST)), 0, NEST_COUNT - 1)
+	var slot := clampi(CoopState.eggs_on_ground, 0, EGG_BUTTON_COUNT - 1)
 	_laying_chicken = index
-	_laying_nest = nest
-	view.nest_index = nest
-	view.mode = MODE_TO_NEST
-	view.target = _nest_lay_point(nest)
-	show_feedback("%s 往 %d 号巢箱走过去了。" % [_chicken_display_name(index), nest + 1], UI.INK_SOFT)
+	_laying_slot = slot
+	view.lay_slot = slot
+	view.mode = MODE_TO_SPOT
+	view.target = _lay_spot_point(slot)
+	show_feedback("%s 去找一块空地下蛋了…" % _chicken_display_name(index), UI.INK_SOFT)
 	return true
 
 
 func _start_laying(index: int, view: ChickenView) -> void:
 	view.mode = MODE_LAY
 	view.timer = LAY_SECONDS
-	view.facing = 1 if view.nest_index <= 1 else -1
+	view.facing = 1 if view.lay_slot % 2 == 0 else -1
 	_play_anim(view, "crouch")
-	show_feedback("%s 蹲在 %d 号巢箱前下蛋…" % [
-		_chicken_display_name(index), int(view.nest_index) + 1], UI.INK_SOFT)
+	show_feedback("%s 蹲下来下蛋了…" % _chicken_display_name(index), UI.INK_SOFT)
 
 
 func _finish_laying(index: int, view: ChickenView) -> void:
 	var laid := CoopState.lay_egg(index)
-	var laid_nest := _laying_nest
 	_laying_chicken = -1
-	_laying_nest = -1
-	view.nest_index = -1
+	_laying_slot = -1
+	view.lay_slot = -1
 	if laid > 0:
 		_sync_egg_buttons()
 		var egg_index := mini(CoopState.eggs_on_ground - 1, _egg_buttons.size() - 1)
 		if egg_index >= 0:
 			_float_text(_egg_buttons[egg_index], "+1 蛋", UI.GOLD)
-		show_feedback("%s 在 %d 号巢箱下了一枚蛋，点巢箱里的蛋收取。" % [
-			_chicken_display_name(index), laid_nest + 1], UI.GREEN_DARK)
+		show_feedback("%s 下了一枚蛋，掉在木地板上，点一下收进仓库。" % _chicken_display_name(index), UI.GREEN_DARK)
 		view.mode = MODE_IDLE
 		view.timer = 1.4
 	else:
@@ -1184,19 +1132,18 @@ func _finish_laying(index: int, view: ChickenView) -> void:
 func _abort_laying(index: int, view: ChickenView) -> void:
 	if _laying_chicken == index:
 		_laying_chicken = -1
-		_laying_nest = -1
-	view.nest_index = -1
+		_laying_slot = -1
+	view.lay_slot = -1
 	_pick_wander_target(view, _walk_bounds())
 
 
-## 鸡走到巢箱下面站的落点：巢箱正下方的木地板上
-func _nest_lay_point(nest_index: int) -> Vector2:
+## 鸡下蛋时站的位置：对应的落蛋点往上错开一点，蛋落点在鸡脚前
+func _lay_spot_point(slot: int) -> Vector2:
 	var bounds := _walk_bounds()
-	var nest := clampi(nest_index, 0, NEST_COUNT - 1)
-	var rect: Rect2 = NEST_RECTS[nest]
-	var x := (rect.position.x + rect.size.x * 0.5) * _arena.size.x
-	var y := bounds.position.y + 8.0
-	return Vector2(clampf(x, bounds.position.x + 28.0, bounds.end.x - 28.0), y)
+	var point := _egg_floor_point(slot) - Vector2(0.0, 20.0)
+	return Vector2(
+		clampf(point.x, bounds.position.x + 28.0, bounds.end.x - 28.0),
+		clampf(point.y, bounds.position.y + 10.0, bounds.end.y - 10.0))
 
 
 func _should_seek(index: int) -> bool:
@@ -1263,7 +1210,7 @@ func _play_anim(view: ChickenView, kind: String) -> void:
 		view.sprite.play(animation)
 
 
-## 收蛋时在蛋上方冒一个「+1」；蛋按钮嵌在巢箱里，要先换回场景局部坐标
+## 收蛋时在蛋上方冒一个「+1」；蛋按钮在木地板上，要先换回场景局部坐标
 func _float_text(anchor: Control, text_value: String, color: Color) -> void:
 	if _arena == null:
 		return
@@ -1296,14 +1243,14 @@ func _on_open() -> void:
 
 func _on_close() -> void:
 	# 关窗后整个鸡舍暂停（含产蛋计时），避免不在场时凭空多蛋；
-	# 正在去巢箱/下蛋的鸡回到待机，下次打开再重新走。
+	# 正在去下蛋的鸡回到待机，下次打开再重新走。
 	CoopState.ui_active = false
 	if _laying_chicken >= 0 and _laying_chicken < _chickens.size():
 		var laying_view: ChickenView = _chickens[_laying_chicken]
 		laying_view.mode = MODE_IDLE
 		laying_view.timer = 0.4
 	_laying_chicken = -1
-	_laying_nest = -1
+	_laying_slot = -1
 
 
 func _on_inventory_changed() -> void:
