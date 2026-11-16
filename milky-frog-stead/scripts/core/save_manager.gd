@@ -12,10 +12,15 @@ extends Node
 const SAVE_DIR: String = "user://saves"
 const LEGACY_SAVE_PATH: String = "user://save.json"
 const SLOT_COUNT: int = 3
+
+## 测试隔离：--test-save 时所有槽位操作都落到这个文件，不碰正式存档
+var _test_save_path: String = ""
 const SAVE_VERSION: int = 1
 const MIN_COMPATIBLE_VERSION: int = 1
 
 const DEFAULT_GOLD: int = 500
+## 老存档一次性演示补给：读档时补 10 小麦，方便直接进鸡舍喂鸡/演示
+const DEMO_SUPPLY_WHEAT: int = 10
 const SAVE_VERSION_LABEL: String = "v1"
 
 const GAME_SCENE: String = "res://scenes/farm.tscn"
@@ -39,6 +44,7 @@ var _pending_clock: Dictionary = {}
 
 
 func _ready() -> void:
+	_apply_test_save_path()
 	_ensure_save_dir()
 	_migrate_legacy_save()
 	_autosave_timer = Timer.new()
@@ -65,6 +71,8 @@ func slot_file_name(slot: int) -> String:
 
 
 func slot_path(slot: int) -> String:
+	if not _test_save_path.is_empty():
+		return _test_save_path
 	return "%s/%s" % [SAVE_DIR, slot_file_name(slot)]
 
 
@@ -266,6 +274,9 @@ func start_new_game(slot: int = -1) -> bool:
 	_pending_clock = {}
 	StaffRegistry.clear()
 	Inventory.reset_to_starting()
+	FarmState.reset()
+	CoopState.reset()
+	FarmOutput.reset()
 	_pending_gold = DEFAULT_GOLD
 	_last_gold = DEFAULT_GOLD
 	delete_slot(slot, false)
@@ -291,6 +302,8 @@ func load_game(slot: int = -1) -> bool:
 	_pending_clock = data.get("clock", {}) if data.get("clock") is Dictionary else {}
 	StaffRegistry.from_dict(data.get("staff", []))
 	_restore_inventory(data)
+	_restore_buildings(data)
+	_apply_demo_supply(data)
 	_pending_gold = int(data.get("gold", DEFAULT_GOLD))
 	_last_gold = _pending_gold
 	game_loaded.emit(slot)
@@ -381,6 +394,12 @@ func save_game() -> bool:
 		"clock": _read_clock_from_scene(),
 		"inventory": Inventory.to_dict(),
 		"warehouse_slots": Inventory.warehouse_slots.duplicate(true),
+		"buildings": {
+			"farm": FarmState.to_dict(),
+			"coop": CoopState.to_dict(),
+		},
+		# 读档补给只发一次；写进存档后就标记为已发过
+		"demo_wheat_supply": true,
 	}
 	var file := FileAccess.open(slot_path(active_slot), FileAccess.WRITE)
 	if file == null:
@@ -404,6 +423,8 @@ func consume_pending_clock() -> Dictionary:
 # ---------------- 内部 ----------------
 
 func _ensure_save_dir() -> void:
+	if not _test_save_path.is_empty():
+		return
 	if DirAccess.dir_exists_absolute(SAVE_DIR):
 		return
 	var err := DirAccess.make_dir_recursive_absolute(SAVE_DIR)
@@ -412,6 +433,8 @@ func _ensure_save_dir() -> void:
 
 
 func _migrate_legacy_save() -> void:
+	if not _test_save_path.is_empty():
+		return
 	if not FileAccess.file_exists(LEGACY_SAVE_PATH) or has_slot(1):
 		return
 	var file := FileAccess.open(LEGACY_SAVE_PATH, FileAccess.READ)
@@ -459,10 +482,58 @@ func _restore_inventory(data: Dictionary) -> void:
 	var saved: Variant = data.get("warehouse_slots", [])
 	if saved is Array:
 		for entry in saved.slice(0, 40):
-			Inventory.warehouse_slots.append(entry.duplicate() if entry is Dictionary else {})
+			if not (entry is Dictionary):
+				Inventory.warehouse_slots.append({})
+				continue
+			var copy: Dictionary = (entry as Dictionary).duplicate()
+			var item_id := String(copy.get("item_id", ""))
+			if not item_id.is_empty():
+				if Inventory.REMOVED_ITEM_IDS.has(item_id):
+					Inventory.warehouse_slots.append({})
+					continue
+				if Inventory.LEGACY_ITEM_IDS.has(item_id):
+					copy["item_id"] = String(Inventory.LEGACY_ITEM_IDS[item_id])
+			Inventory.warehouse_slots.append(copy)
 	EventBus.inventory_reloaded.emit()
 
 
+## 建筑存档：农田地块 + 鸡舍状态。旧存档没有该字段时回到默认状态。
+func _restore_buildings(data: Dictionary) -> void:
+	var buildings: Variant = data.get("buildings", {})
+	if not (buildings is Dictionary):
+		FarmState.reset()
+		CoopState.reset()
+		return
+	var farm: Variant = buildings.get("farm", {})
+	FarmState.from_dict(farm if farm is Dictionary else {})
+	var coop: Variant = buildings.get("coop", {})
+	CoopState.from_dict(coop if coop is Dictionary else {})
+
+
+## 老存档没有小麦/食槽是空的时候，读档一次性补 10 小麦。
+## 只对没有该标记的旧存档生效；写进存档后不会重复发；测试存档不参与。
+func _apply_demo_supply(data: Dictionary) -> void:
+	if OS.get_cmdline_user_args().has("--test-save"):
+		return
+	if bool(data.get("demo_wheat_supply", false)):
+		return
+	Inventory.add("wheat", DEMO_SUPPLY_WHEAT)
+
+
+## 测试存档隔离：
+##   --test-save                改用独立的测试文件名，不碰玩家正式存档；
+##   --test-save-in-workspace   再把它放到工程内 .tmp/ 下，方便无头验收环境读写。
+func _apply_test_save_path() -> void:
+	# 测试模式下允许不经过主菜单直接 save_game()/load_save()，并把槽位落到独立文件。
+	if not OS.get_cmdline_user_args().has("--test-save"):
+		return
+	active_slot = 1
+	_session_active = true
+	if OS.get_cmdline_user_args().has("--test-save-in-workspace"):
+		DirAccess.make_dir_recursive_absolute("res://.tmp")
+		_test_save_path = "res://.tmp/save.test.json"
+	else:
+		_test_save_path = "user://save.test.json"
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST and _session_active:
 		save_game()

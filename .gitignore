@@ -53,6 +53,8 @@ $RECYCLE.BIN/
 *.lnk
 
 # ---------- 临时 / 日志文件 ----------
+# 无头测试 / 截图产物目录（--test-save-in-workspace 的测试存档也在这里）
+.tmp/
 *.log
 *.tmp
 *.temp

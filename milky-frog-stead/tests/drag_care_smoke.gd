@@ -9,12 +9,12 @@ func _ready() -> void:
 		push_error("Run with -- --test-save to isolate save data")
 		get_tree().quit(1)
 		return
-	Inventory.from_dict({"wheat": 10, "tomato": 10, "turnip_seed": 4})
+	Inventory.from_dict({"wheat": 10, "tomato": 10, "pumpkin_seed": 4})
 	# Migrate a mixed old layout, including wheat in the former food area.
 	Inventory.warehouse_slots.resize(40)
 	Inventory.warehouse_slots[0] = {"item_id": "tomato", "amount": 10}
 	Inventory.warehouse_slots[25] = {"item_id": "wheat", "amount": 10}
-	Inventory.warehouse_slots[26] = {"item_id": "turnip_seed", "amount": 4}
+	Inventory.warehouse_slots[26] = {"item_id": "pumpkin_seed", "amount": 4}
 	var warehouse = load("res://scenes/ui/menus/menu_warehouse.tscn").instantiate()
 	add_child(warehouse)
 	await get_tree().process_frame
@@ -27,12 +27,12 @@ func _ready() -> void:
 			index = i
 		elif id == "wheat":
 			wheat_index = i
-		elif id == "turnip_seed":
+		elif id == "pumpkin_seed":
 			seed_index = i
 	check("tomato migrates to food page", index >= warehouse.MATERIAL_SLOT_COUNT)
 	check("wheat migrates to material page", wheat_index >= 0 and wheat_index < warehouse.MATERIAL_SLOT_COUNT)
 	check("seed migrates to material page", seed_index >= 0 and seed_index < warehouse.MATERIAL_SLOT_COUNT)
-	check("migration preserves inventory", Inventory.get_amount("wheat") == 10 and Inventory.get_amount("tomato") == 10 and Inventory.get_amount("turnip_seed") == 4)
+	check("migration preserves inventory", Inventory.get_amount("wheat") == 10 and Inventory.get_amount("tomato") == 10 and Inventory.get_amount("pumpkin_seed") == 4)
 	check("materials selected by default", warehouse.get_node("MaterialGrid").visible and not warehouse.get_node("FoodGrid").visible)
 	warehouse.get_node("CategoryButtons/FoodButton").pressed.emit()
 	check("food button switches page", warehouse.get_node("FoodGrid").visible and not warehouse.get_node("MaterialGrid").visible)

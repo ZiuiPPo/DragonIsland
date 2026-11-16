@@ -28,6 +28,10 @@ const ANIM_TIME: float = 0.18       ## 要"快速弹出"就调小这个值
 @onready var _icon_column: VBoxContainer = %IconColumn
 
 var _workbench: Control
+var _buildings_layer: CanvasLayer = null
+var _building_hub: Control = null
+var _shop_layer: CanvasLayer = null
+var _shop_window: Control = null
 
 var _menus: Dictionary = {}                  ## SidebarIconButton -> Control（懒加载缓存）
 var _open_button: SidebarIconButton = null
@@ -39,6 +43,8 @@ var _fade_tween: Tween = null
 func _ready() -> void:
 	_collapse_immediately()
 	get_node("Layout/IconColumn/RecipesButton").pressed.connect(_open_workbench)
+	get_node("Layout/IconColumn/BuildingButton").pressed.connect(_open_buildings)
+	get_node("Layout/IconColumn/ShopButton").pressed.connect(_open_shop)
 	for child in _icon_column.get_children():
 		if child is SidebarIconButton:
 			child.toggled.connect(_on_icon_toggled.bind(child))
@@ -180,8 +186,84 @@ func _collapse_immediately() -> void:
 	_set_menu_height(0.0)
 	_menu_panel.visible = false
 
+func _ensure_buildings_layer() -> void:
+	if is_instance_valid(_buildings_layer):
+		return
+	_buildings_layer = CanvasLayer.new()
+	_buildings_layer.name = "BuildingsLayer"
+	_buildings_layer.layer = 50
+	add_child(_buildings_layer)
+	_building_hub = preload("res://scripts/ui/building_hub.gd").new()
+	_building_hub.closed.connect(_on_buildings_closed)
+	_buildings_layer.add_child(_building_hub)
+
+
+func _open_buildings() -> void:
+	close()
+	_close_shop()
+	if is_instance_valid(_workbench) and _workbench.visible:
+		_workbench.close()
+	_ensure_buildings_layer()
+	_buildings_layer.visible = true
+	_building_hub.open()
+
+
+func _ensure_shop_layer() -> void:
+	if is_instance_valid(_shop_layer):
+		return
+	_shop_layer = CanvasLayer.new()
+	_shop_layer.name = "ShopLayer"
+	_shop_layer.layer = 50
+	add_child(_shop_layer)
+	_shop_window = preload("res://scripts/ui/shop_window.gd").new()
+	_shop_window.back_requested.connect(_on_shop_closed)
+	_shop_window.exit_requested.connect(_on_shop_closed)
+	_shop_layer.add_child(_shop_window)
+
+
+## 侧栏商店按钮：直接打开独立商店页；返回/Esc/关闭都回到农场。
+func _open_shop() -> void:
+	close()
+	_close_buildings()
+	if is_instance_valid(_workbench) and _workbench.visible:
+		_workbench.close()
+	_ensure_shop_layer()
+	_shop_layer.visible = true
+	_shop_window.open()
+
+
+func _on_shop_closed() -> void:
+	if is_instance_valid(_shop_window):
+		_shop_window.close()
+	if is_instance_valid(_shop_layer):
+		_shop_layer.visible = false
+
+
+func _close_shop() -> void:
+	if not is_instance_valid(_shop_layer) or not _shop_layer.visible:
+		return
+	_on_shop_closed()
+
+
+func _on_buildings_closed() -> void:
+	if is_instance_valid(_buildings_layer):
+		_buildings_layer.visible = false
+
+
+func _close_buildings() -> void:
+	# 走 hub.close()：它会先关掉打开中的建筑页（鸡舍页要借此把 ui_active 交还数据层），
+	# 再发 closed，由 _on_buildings_closed 把整层隐藏。
+	if is_instance_valid(_buildings_layer) and _buildings_layer.visible:
+		if is_instance_valid(_building_hub):
+			_building_hub.close()
+		else:
+			_buildings_layer.visible = false
+
+
 func _open_workbench() -> void:
 	close()
+	_close_buildings()
+	_close_shop()
 	if not is_instance_valid(_workbench):
 		var layer := CanvasLayer.new()
 		layer.name = "CookingLayer"

@@ -5,8 +5,8 @@
 
 [resource]
 script = ExtResource("1_item")
-id = "turnip"
-display_name = "萝卜"
+id = "pumpkin"
+display_name = "南瓜"
 icon = ExtResource("2_icon")
 category = 1
 is_ingredient = true
@@ -14,7 +14,7 @@ is_edible = true
 is_seed = false
 is_feed = false
 buy_price = 0
-sell_price = 15
-satiety_restore = 20.0
+sell_price = 25
+satiety_restore = 25.0
 stack_max = 64
 description = "农场作物，可作餐厅食材。"

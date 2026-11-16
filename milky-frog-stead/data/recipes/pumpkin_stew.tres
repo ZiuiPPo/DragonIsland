@@ -2,9 +2,9 @@
 [ext_resource type="Script" path="res://scripts/data/recipe_data.gd" id="1"]
 [resource]
 script = ExtResource("1")
-id = "turnip_stew"
-display_name = "歪嘴萝卜锅"
-ingredients = {"turnip": 2, "egg": 1}
-output_id = "turnip_stew"
+id = "pumpkin_stew"
+display_name = "歪嘴南瓜锅"
+ingredients = {"pumpkin": 2, "egg": 1}
+output_id = "pumpkin_stew"
 output_amount = 2
-description = "锅里的萝卜已经笑歪了嘴。"
+description = "锅里的南瓜已经笑歪了嘴。"

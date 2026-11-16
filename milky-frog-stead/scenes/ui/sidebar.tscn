@@ -251,13 +251,15 @@ expand_mode = 1
 stretch_mode = 5
 
 [node name="ShopButton" type="Button" parent="Layout/IconColumn" unique_id=215383886]
-self_modulate = Color(1, 1, 1, 0.65)
 custom_minimum_size = Vector2(72, 72)
 layout_mode = 2
-tooltip_text = "商店（尚未开放）"
+tooltip_text = "商店"
 focus_mode = 0
-theme_override_styles/disabled = SubResource("StyleBoxFlat_icon_normal")
-disabled = true
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_icon_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_icon_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_icon_hover")
+theme_override_styles/hover_pressed = SubResource("StyleBoxFlat_icon_pressed")
 
 [node name="Icon" type="TextureRect" parent="Layout/IconColumn/ShopButton" unique_id=1870363936]
 layout_mode = 1
@@ -304,13 +306,15 @@ expand_mode = 1
 stretch_mode = 5
 
 [node name="BuildingButton" type="Button" parent="Layout/IconColumn" unique_id=813646787]
-self_modulate = Color(1, 1, 1, 0.65)
 custom_minimum_size = Vector2(72, 72)
 layout_mode = 2
-tooltip_text = "建筑（尚未开放）"
+tooltip_text = "建筑"
 focus_mode = 0
-theme_override_styles/disabled = SubResource("StyleBoxFlat_icon_normal")
-disabled = true
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_icon_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_icon_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_icon_hover")
+theme_override_styles/hover_pressed = SubResource("StyleBoxFlat_icon_pressed")
 
 [node name="Icon" type="TextureRect" parent="Layout/IconColumn/BuildingButton" unique_id=440152059]
 layout_mode = 1

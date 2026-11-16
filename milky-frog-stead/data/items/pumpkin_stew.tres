@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/item_data.gd" id="1_item"]
+[ext_resource type="Texture2D" path="res://assets/icons/dishes/turnip_stew.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_item")
+id = "pumpkin_stew"
+display_name = "歪嘴南瓜锅"
+icon = ExtResource("2_icon")
+category = 5
+is_ingredient = false
+is_edible = true
+is_seed = false
+is_feed = false
+buy_price = 0
+sell_price = 0
+satiety_restore = 65.0
+stack_max = 64
+description = "锅里的南瓜已经笑歪了嘴。"

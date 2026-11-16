@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="CropData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/crop_data.gd" id="1_crop"]
+[ext_resource type="Texture2D" path="res://assets/plants/corn.png" id="2_plant"]
+
+[resource]
+script = ExtResource("1_crop")
+id = "corn"
+display_name = "玉米"
+seed_item_id = "corn_seed"
+yield_item_id = "corn"
+grow_days = 1
+yield_min = 1
+yield_max = 2
+buy_price = 15
+plant_texture = ExtResource("2_plant")
+plant_frames = 4
+plant_tint = Color(1, 1, 1, 1)
