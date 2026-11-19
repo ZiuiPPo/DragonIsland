@@ -301,6 +301,7 @@ func load_game(slot: int = -1) -> bool:
 
 	_pending_clock = data.get("clock", {}) if data.get("clock") is Dictionary else {}
 	StaffRegistry.from_dict(data.get("staff", []))
+	StaffRegistry.recruit_count = maxi(StaffRegistry.count(), int(data.get("recruit_count", StaffRegistry.count())))
 	_restore_inventory(data)
 	_restore_buildings(data)
 	_apply_demo_supply(data)
@@ -391,6 +392,7 @@ func save_game() -> bool:
 		"scene": GAME_SCENE,
 		"gold": _read_gold_from_scene(),
 		"staff": StaffRegistry.to_dict(),
+		"recruit_count": StaffRegistry.recruit_count,
 		"clock": _read_clock_from_scene(),
 		"inventory": Inventory.to_dict(),
 		"warehouse_slots": Inventory.warehouse_slots.duplicate(true),

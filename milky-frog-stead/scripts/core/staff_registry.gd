@@ -19,6 +19,13 @@ signal staff_changed()
 ## 当前所有员工，按招聘顺序
 var members: Array[StaffMember] = []
 
+var recruit_count: int = 0
+
+## 限制指数，避免极端次数造成整数溢出。
+func recruit_cost() -> int:
+	return 100 * (1 << clampi(recruit_count, 0, 50))
+
+
 var _next_id: int = 1
 
 
@@ -109,6 +116,7 @@ func from_dict(data: Variant) -> void:
 
 ## 清空名册（调试用）
 func clear() -> void:
+	recruit_count = 0
 	members.clear()
 	_next_id = 1
 	staff_changed.emit()

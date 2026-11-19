@@ -8,7 +8,7 @@ const STATUS_PENDING: String = "待定"
 const MAX_SATIETY: float = 100.0
 const HUNGRY_AT: float = 30.0
 ## 体力与饱腹共用一个数值：喂食恢复，漫游中偶发大笑时消耗。
-var satiety: float = 60.0
+var satiety: float = 0.0
 var is_working: bool = false
 ## 运行时表现状态，不写入存档。
 var is_laughing: bool = false

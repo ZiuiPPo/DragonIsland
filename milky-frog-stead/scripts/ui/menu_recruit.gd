@@ -1,20 +1,19 @@
 extends VBoxContainer
 ## 招聘菜单（抽卡）。
 ##
-## 流程：点「招聘一次」→ 扣钱 → 从 pool 里等概率抽一名 → 显示立绘 + 起名框
+## 流程：点「招聘一次」→ 扣钱 → 从 pool 里按权重抽一名 → 显示立绘 + 起名框
 ##      → 点「确定录用」（或回车）→ 写进 StaffRegistry → 员工状态菜单自动刷新。
 ##
 ## 招聘池不是写死的：运行时扫描 POOL_DIR 下的所有 png，往目录里丢一张新图就多一个可抽角色。
 ## 每张立绘必须有同名的序列帧（见 scripts/staff/staff_looks.gd），否则会被跳过。
-## 概率目前完全平均（randi_range 均匀取一个），以后要加权就改 _pick()。
+## npc1 的权重为其他角色的 4 倍。
 
 const POOL_DIR: String = "res://assets/icons/recruit"
 ## 用 preload 而不是全局类名：新脚本的 class_name 要等编辑器扫过才注册
 const Looks := preload("res://scripts/staff/staff_looks.gd")
 const POOL_COLUMNS: int = 3
 const POOL_CELL: float = 64.0
-## 抽一次多少钱
-const DRAW_COST: int = 100
+const NPC1_WEIGHT: int = 4
 
 @onready var _pool_grid: GridContainer = %PoolGrid
 @onready var _result_panel: Control = %ResultPanel
@@ -41,7 +40,7 @@ func _ready() -> void:
 	_load_pool()
 	_build_pool_cells()
 	_update_draw_button()
-	_set_hint("抽一次 %d 金币" % DRAW_COST)
+	_set_hint("抽一次 %d 金币" % StaffRegistry.recruit_cost())
 
 
 # ---------------- 招聘池 ----------------
@@ -107,17 +106,28 @@ func _on_draw() -> void:
 		_set_hint("场景里找不到金币计数器（CoinCounter）")
 		return
 	# spend_gold 余额不够会返回 false 且什么都不改
-	if not wallet.spend_gold(DRAW_COST):
-		_set_hint("金币不够，抽一次要 %d" % DRAW_COST)
+	var cost := StaffRegistry.recruit_cost()
+	if not wallet.spend_gold(cost):
+		_set_hint("金币不够，抽一次要 %d" % StaffRegistry.recruit_cost())
 		return
 
+	StaffRegistry.recruit_count += 1
+	SaveManager.request_autosave()
 	_pending = _pick()
 	_show_result(_pending)
 
 
-## 等概率抽一名。以后要做稀有度/加权就改这里。
+## 按整数权重抽取，兼容招聘池增减角色。
 func _pick() -> Dictionary:
-	return _pool[_rng.randi_range(0, _pool.size() - 1)]
+	var total := 0
+	for entry in _pool:
+		total += NPC1_WEIGHT if entry["look"] == "npc1" else 1
+	var roll := _rng.randi_range(1, total)
+	for entry in _pool:
+		roll -= NPC1_WEIGHT if entry["look"] == "npc1" else 1
+		if roll <= 0:
+			return entry
+	return {}
 
 
 func _show_result(entry: Dictionary) -> void:
@@ -171,7 +181,7 @@ func _set_hint(text: String) -> void:
 func _update_draw_button() -> void:
 	var waiting := not _pending.is_empty()
 	_draw_button.disabled = waiting
-	_draw_button.text = "先给抽到的角色起名" if waiting else "招聘一次 · %d 金币" % DRAW_COST
+	_draw_button.text = "先给抽到的角色起名" if waiting else "招聘一次 · %d 金币" % StaffRegistry.recruit_cost()
 
 
 ## 金币在 HUD 的 CoinCounter 节点上（coin_counter.tscn 里挂了 coin_counter 分组）
