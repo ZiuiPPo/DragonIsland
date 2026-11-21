@@ -86,6 +86,7 @@ func _on_primary_pressed(slot: int) -> void:
 			_ask(
 				"覆盖存档",
 				"存档位 %d 已有进度，覆盖后会清除原来的农场数据。\n确定要覆盖吗？" % slot,
+				"覆盖",
 				func() -> void: new_game_requested.emit(slot)
 			)
 		else:
@@ -105,16 +106,19 @@ func _on_delete_requested(slot: int) -> void:
 	_ask(
 		"删除存档",
 		"确定删除存档位 %d 的进度吗？\n删除后无法恢复。" % slot,
+		"删除",
 		func() -> void:
 			SaveManager.delete_slot(slot)
 			_hint.text = "存档位 %d 已删除" % slot
 	)
 
 
-func _ask(title: String, text: String, action: Callable) -> void:
+func _ask(title: String, text: String, confirm_text: String, action: Callable) -> void:
 	_pending_action = action
 	_confirm.title = title
 	_confirm.dialog_text = text
+	_confirm.ok_button_text = confirm_text
+	_confirm.cancel_button_text = "取消"
 	_confirm.popup_centered()
 
 
