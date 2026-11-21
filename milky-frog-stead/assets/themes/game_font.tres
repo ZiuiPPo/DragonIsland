@@ -1,0 +1,5 @@
+[gd_resource type="SystemFont" format=3]
+
+[resource]
+font_names = PackedStringArray("幼圆", "YouYuan", "Microsoft YaHei UI", "Microsoft YaHei", "sans-serif")
+allow_system_fallback = true
