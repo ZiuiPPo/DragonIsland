@@ -1,6 +1,7 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/save_slot_card.gd" id="1_script"]
+[ext_resource type="Font" path="res://assets/themes/title_font.tres" id="2_title"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card"]
 bg_color = Color(0.31, 0.25, 0.16, 0.96)
@@ -59,6 +60,7 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(1, 0.94, 0.78, 1)
+theme_override_fonts/font = ExtResource("2_title")
 theme_override_font_sizes/font_size = 19
 text = "存档位 1"
 

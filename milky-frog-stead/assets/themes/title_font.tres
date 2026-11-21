@@ -1,0 +1,5 @@
+[gd_resource type="SystemFont" format=3]
+
+[resource]
+font_names = PackedStringArray("华文琥珀", "STHupo", "STHUPO", "幼圆", "Microsoft YaHei")
+allow_system_fallback = true
