@@ -1,8 +1,10 @@
-[gd_scene load_steps=9 format=3 uid="uid://dagoe4tn5g2y1"]
+[gd_scene load_steps=11 format=3 uid="uid://dagoe4tn5g2y1"]
 
 [ext_resource type="Script" uid="uid://bqbql5pfbu48v" path="res://scenes/ui/main_menu.gd" id="1_fe2o3"]
 [ext_resource type="Texture2D" uid="uid://btcngsxbrkq0k" path="res://assets/start/startback.png" id="1_sl1te"]
 [ext_resource type="Font" path="res://assets/themes/title_font.tres" id="2_title"]
+[ext_resource type="PackedScene" path="res://scenes/ui/menu_video_background.tscn" id="3_menu_background"]
+[ext_resource type="AudioStream" uid="uid://d288q55quxav3" path="res://assets/audio/nailong_laugh.mp3" id="4_menu_music"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_normal"]
 content_margin_left = 18.0
@@ -99,6 +101,15 @@ grow_horizontal = 2
 grow_vertical = 2
 texture = ExtResource("1_sl1te")
 expand_mode = 1
+
+[node name="VideoBackground" parent="." instance=ExtResource("3_menu_background")]
+layout_mode = 1
+
+[node name="MenuMusic" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("4_menu_music")
+volume_db = -8.0
+autoplay = true
+parameters/looping = true
 
 [node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=1912356257]
 custom_minimum_size = Vector2(450, 300)

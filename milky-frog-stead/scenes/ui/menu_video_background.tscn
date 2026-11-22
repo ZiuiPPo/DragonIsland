@@ -1,0 +1,22 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="VideoStream" uid="uid://cvmmivw2wcl3s" path="res://assets/start/menu_background.ogv" id="1_video"]
+
+[node name="VideoBackground" type="AspectRatioContainer"]
+clip_contents = true
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+ratio = 1.7777778
+stretch_mode = 3
+
+[node name="VideoStreamPlayer" type="VideoStreamPlayer" parent="."]
+layout_mode = 2
+mouse_filter = 2
+stream = ExtResource("1_video")
+autoplay = true
+expand = true
+loop = true
