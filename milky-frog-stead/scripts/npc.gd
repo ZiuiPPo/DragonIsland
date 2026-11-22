@@ -8,8 +8,7 @@ extends CharacterBody2D
 ##   CharacterBody2D.move_and_slide()  真正挪动身体
 ##
 ## 漫游的本质是 **低频决策 + 高频执行**：
-##   决策（挑点、计时）一秒才发生一次；移动每物理帧都在跑。
-##   决策写进每帧 → 抽搐；移动写成一次性 → 瞬移。
+##   等待计时每物理帧更新；等待结束、到达或受阻时才决定下一步。
 
 # ---------------------------------------------------------------- 可调参数
 @export_group("漫游")
@@ -51,7 +50,7 @@ extends CharacterBody2D
 
 # ---------------------------------------------------------------- 常量
 ## 动画名。**必须和场景里 SpriteFrames 的动画名一字不差**，
-## 写错了 Godot 不会报错，只会静默地什么都不播（_check_animations 会兜住）
+## 动画名必须与 SpriteFrames 一致；_check_animations 提前检查缺失配置。
 const ANIM_IDLE_LEFT := &"idle_left"
 const ANIM_IDLE_RIGHT := &"idle_right"
 const ANIM_MOVE_LEFT := &"move_left"
@@ -84,7 +83,7 @@ const BLOCKED_PROGRESS_RATIO := 0.35
 ## 以后也能给某个 NPC 设固定 seed 来复现 bug
 var _rng := RandomNumberGenerator.new()
 
-## 活动范围的中心 = 编辑器里摆的位置（**不是**随机出生后的位置）
+## 活动范围的中心 = _ready() 时的位置，随后才应用 random_spawn 偏移。
 var _home: Vector2 = Vector2.ZERO
 
 ## 还要静止多久（秒）。> 0 时不挑新点
@@ -246,7 +245,7 @@ func _update_anim() -> void:
 		want = ANIM_IDLE_RIGHT if _facing_right else ANIM_IDLE_LEFT
 
 	# ③ 只在真的换了动画时才动 frame
-	#    不重置的话：move_left 有 7 帧，切到只有 1 帧的 idle_right 会读到越界帧
+	#    切换动作时显式从首帧开始。
 	if animated_sprite_2d.animation != want:
 		animated_sprite_2d.animation = want
 		animated_sprite_2d.frame = 0
@@ -254,13 +253,12 @@ func _update_anim() -> void:
 	# ④ 启动播放。
 	#    **光设 animation 不会让帧往前走** —— playing 为 false 时，
 	#    设 animation 只负责把第 0 帧贴上去，看起来就是"卡在首帧"。
-	#    但也**不能每帧都调 play()**：它内部会把帧重置到 0，
-	#    每帧调一次反而永远停在第 0 帧。所以必须"只在没播的时候播一次"。
+	#    仅在停止播放时启动，避免重复调用。
 	if not animated_sprite_2d.is_playing():
 		animated_sprite_2d.play()
 
 	# ⑤ 动画速度跟着实际速度走，减少"脚底打滑"。
-	#    放在 play() 之后：play() 会把 speed_scale 重置成 1.0
+	#    每帧按当前动作更新 speed_scale，停止走路时恢复为 1.0。
 	if moving:
 		animated_sprite_2d.speed_scale = clampf(
 			velocity.length() / maxf(locomotion.move_speed, 1.0), 0.5, 2.0)
@@ -272,7 +270,7 @@ func _update_anim() -> void:
 		animated_sprite_2d.speed_scale = 1.0
 
 
-## 动画名如果和场景里对不上，Godot 不会报错 —— 只会静默地什么都不播。
+## 动画名必须与 SpriteFrames 一致；_check_animations 提前检查缺失配置。
 ## 这个检查能把"它在滑步/不动"从"猜"变成"日志里一行字"
 func _check_animations() -> void:
 	var frames := animated_sprite_2d.sprite_frames

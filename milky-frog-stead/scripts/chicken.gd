@@ -101,7 +101,7 @@ extends CharacterBody2D
 
 # ---------------------------------------------------------------- 常量
 ## 动画名。**必须和 chicken.tscn 里 SpriteFrames 的动画名一字不差**，
-## 写错了 Godot 不会报错，只会静默地什么都不播（_check_animations 会兜住）
+## 动画名必须与 SpriteFrames 一致；_check_animations 提前检查缺失配置。
 const ANIM_IDLE := "idle"
 const ANIM_MOVE := "move"
 const ANIM_EAT := "eat"
@@ -146,7 +146,7 @@ enum State { IDLE, WANDER, CROUCH, TO_FOOD, EATING }
 ## 每只小鸡自己一个随机源：一只的随机不影响别的，以后也能设固定 seed 复现问题
 var _rng := RandomNumberGenerator.new()
 
-## 活动范围的中心 = 编辑器里摆的位置（**不是**随机出生后的位置）
+## 活动范围的中心 = _ready() 时的位置，随后才应用 random_spawn 偏移。
 var _home: Vector2 = Vector2.ZERO
 
 ## 当前状态
@@ -490,18 +490,18 @@ func _update_anim() -> void:
 	if not _has_anim(want):
 		want = _anim_name(ANIM_IDLE, _facing_right)
 
-	# ④ 只在真的换了动画时才动 frame，不重置的话会读到越界帧
+	# ④ 切换动画时显式从首帧开始。
 	if animated_sprite_2d.animation != want:
 		animated_sprite_2d.animation = want
 		animated_sprite_2d.frame = 0
 
 	# ⑤ 光设 animation 不会让帧往前走（playing 为 false 时只贴第 0 帧），
-	#    但也不能每帧都调 play() —— 它内部会把帧重置到 0
+	#    仅在停止播放时启动，避免重复调用。
 	if not animated_sprite_2d.is_playing():
 		animated_sprite_2d.play()
 
 	# ⑥ 走路动画速度跟着实际速度走，减少脚底打滑。
-	#    放在 play() 之后：play() 会把 speed_scale 重置成 1.0
+	#    每帧按当前动作更新 speed_scale，停止走路时恢复为 1.0。
 	if moving and (action == ANIM_MOVE):
 		animated_sprite_2d.speed_scale = clampf(
 			speed / maxf(locomotion.move_speed, 1.0), 0.5, 2.0)
@@ -519,7 +519,7 @@ func _has_anim(anim: StringName) -> bool:
 	return frames != null and frames.has_animation(anim)
 
 
-## 动画名和场景里对不上时，Godot 只会静默地什么都不播。
+## 动画名必须与 SpriteFrames 一致；_check_animations 提前检查缺失配置。
 ## 这个检查把"它在滑步/隐形"从猜变成日志里一行字（配了兜底，只是警告不是错误）
 func _check_animations() -> void:
 	var frames := animated_sprite_2d.sprite_frames
