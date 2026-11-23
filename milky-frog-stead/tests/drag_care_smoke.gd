@@ -52,6 +52,8 @@ func _ready() -> void:
 	var member = StaffRegistry.add_member("拖拽测试", null, "", "npc1")
 	var npc = load("res://scenes/npc/staff_npc.tscn").instantiate()
 	npc.configure(member, Vector2.ZERO)
+	# master 2.0 起新员工默认饱腹/体力为 0，这里先喂饱再测大笑收入
+	member.satiety = 100.0
 	npc.random_spawn = false
 	add_child(npc)
 	await get_tree().physics_frame
@@ -128,10 +130,12 @@ func _ready() -> void:
 	var wallet = load("res://scenes/ui/coin_counter.tscn").instantiate()
 	add_child(wallet)
 	var earner := StaffMember.new(1001, "收入测试")
+	earner.satiety = 100.0
 	earner.is_laughing = true
 	StaffCare.settle_laughter(earner, 1.0)
 	check("one laughing staff earns 50 per second", wallet.get_gold() == 50)
 	var second_earner := StaffMember.new(1002, "收入测试2")
+	second_earner.satiety = 100.0
 	second_earner.is_laughing = true
 	StaffCare.settle_laughter(second_earner, 1.0)
 	check("two laughing staff incomes add up", wallet.get_gold() == 100)
@@ -159,6 +163,8 @@ func _ready() -> void:
 	var status_menu = load("res://scenes/ui/menus/menu_npc_status.tscn").instantiate()
 	add_child(status_menu)
 	check("obsolete work instruction removed", status_menu.get_node_or_null("Hint") == null)
+	check("员工列表填满抽屉高度", int(status_menu.get_node("%Scroll").size_flags_vertical) == Control.SIZE_EXPAND_FILL)
+	check("员工页不再用底部 Spacer 占位", status_menu.get_node_or_null("Spacer") == null)
 	marker.remove_from_group("day_night_cycle")
 	energy = member.satiety
 	StaffCare._process(2.0)

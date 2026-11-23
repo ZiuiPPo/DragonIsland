@@ -124,6 +124,8 @@ class ChickenView:
 	var mode: int = 0
 	var timer: float = 0.0
 	var lay_slot: int = -1
+	## 撞到边界/走不到目标时累计的秒数，用来兜底重新选路
+	var stuck: float = 0.0
 
 
 var _arena: Control = null
@@ -1050,6 +1052,7 @@ func _update_chickens(delta: float) -> void:
 
 
 func _update_chicken(index: int, view: ChickenView, bounds: Rect2, delta: float) -> void:
+	var pos_before := view.pos
 	match view.mode:
 		MODE_LAY:
 			_play_anim(view, "crouch")
@@ -1104,6 +1107,35 @@ func _update_chicken(index: int, view: ChickenView, bounds: Rect2, delta: float)
 				_play_anim(view, "move")
 				_walk_towards(view, view.target, delta)
 	_apply_chicken_position(view, bounds)
+	_check_stuck(index, view, bounds, pos_before, delta)
+
+
+## 兜底：鸡被边界/旧目标卡住时（位置几乎不动），重选目标或取消下蛋，
+## 避免它永远贴着墙边、饿了也走不到食槽。
+func _check_stuck(index: int, view: ChickenView, bounds: Rect2, pos_before: Vector2, delta: float) -> void:
+	if delta <= 0.0:
+		return
+	if view.mode != MODE_WANDER and view.mode != MODE_SEEK and view.mode != MODE_TO_SPOT:
+		view.stuck = 0.0
+		return
+	var moved := pos_before.distance_to(view.pos)
+	if moved >= view.speed * delta * 0.15:
+		view.stuck = 0.0
+		return
+	view.stuck += delta
+	if view.stuck < 1.2:
+		return
+	view.stuck = 0.0
+	if view.mode == MODE_TO_SPOT:
+		_abort_laying(index, view)
+		_pick_wander_target(view, bounds)
+		return
+	# 往活动区中心方向轻推一下，再重新挑点；下帧会重新判断饥饿/下蛋
+	var center := bounds.get_center()
+	view.pos += (center - view.pos).normalized() * 10.0
+	_apply_chicken_position(view, bounds)
+	view.mode = MODE_IDLE
+	view.timer = 0.2
 
 
 func _start_eating(index: int, view: ChickenView, eat_point: Vector2) -> void:
@@ -1195,11 +1227,16 @@ func _walk_towards(view: ChickenView, point: Vector2, delta: float) -> void:
 
 
 func _pick_wander_target(view: ChickenView, bounds: Rect2) -> void:
-	view.target = Vector2(
-		randf_range(bounds.position.x + 24.0, bounds.end.x - 24.0),
-		randf_range(bounds.position.y + 16.0, bounds.end.y - 16.0))
+	var min_x := bounds.position.x + 24.0
+	var max_x := bounds.end.x - 24.0
+	var min_y := bounds.position.y + 16.0
+	var max_y := bounds.end.y - 16.0
+	view.target = Vector2(randf_range(min_x, max_x), randf_range(min_y, max_y))
 	if view.target.distance_to(view.pos) < 80.0:
 		view.target += Vector2(randf_range(-60.0, 60.0), randf_range(-16.0, 16.0))
+	# 偏移后可能又跑出活动区：必须夹回来，否则旧逻辑会一直朝墙外走、被 clamp 卡住
+	view.target.x = clampf(view.target.x, min_x, max_x)
+	view.target.y = clampf(view.target.y, min_y, max_y)
 	view.mode = MODE_WANDER
 
 
@@ -1232,7 +1269,9 @@ func _trough_eat_point(index: int) -> Vector2:
 		stand_y = _trough_button.position.y - 6.0
 	var active_count := maxi(1, CoopState.chickens.size())
 	var spread := (float(index) - float(active_count - 1) * 0.5) * 44.0
-	return Vector2(center_x + spread, clampf(stand_y, bounds.position.y, bounds.end.y))
+	return Vector2(
+		clampf(center_x + spread, bounds.position.x + 24.0, bounds.end.x - 24.0),
+		clampf(stand_y, bounds.position.y + 16.0, bounds.end.y - 16.0))
 
 
 func _play_anim(view: ChickenView, kind: String) -> void:
@@ -1273,6 +1312,9 @@ func _on_open() -> void:
 	CoopState.ui_active = true
 	_refresh()
 	_ensure_chickens_ready.call_deferred()
+	if CoopState.offline_feed_used > 0:
+		show_feedback("你不在时，鸡从仓库自动吃了 %d 份小麦。" % CoopState.offline_feed_used, UI.INK_SOFT)
+		CoopState.offline_feed_used = 0
 
 
 func _on_close() -> void:

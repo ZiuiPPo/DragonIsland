@@ -66,11 +66,13 @@ func _make_row(member: StaffMember) -> Control:
 
 	var feed := Button.new()
 	feed.text = "喂食"
+	feed.custom_minimum_size = Vector2(58.0, 34.0)
+	feed.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	feed.disabled = member.satiety >= StaffMember.MAX_SATIETY or StaffCare.best_food().is_empty()
 	feed.pressed.connect(func(): StaffCare.feed_with_available(member.id))
-	info.add_child(feed)
-	_readouts[member.id] = {"member": member, "status": status_label, "feed": feed}
 	row.add_child(info)
+	row.add_child(feed)
+	_readouts[member.id] = {"member": member, "status": status_label, "feed": feed}
 	return row
 
 func _update_readouts() -> void:
