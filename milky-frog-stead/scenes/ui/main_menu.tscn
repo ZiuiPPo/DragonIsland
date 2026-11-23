@@ -204,7 +204,7 @@ theme_override_colors/font_outline_color = Color(0.14, 0.1, 0.04, 1)
 theme_override_constants/outline_size = 6
 theme_override_fonts/font = ExtResource("2_title")
 theme_override_font_sizes/font_size = 30
-text = "奶龙种地"
+text = "奶娃农场"
 horizontal_alignment = 1
 
 [connection signal="pressed" from="VBoxContainer/NewGame" to="." method="_on_new_game_pressed"]
