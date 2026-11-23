@@ -29,9 +29,8 @@ text_overrun_behavior = 3
 
 [node name="Scroll" type="ScrollContainer" parent="."]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 240)
 layout_mode = 2
-size_flags_vertical = 0
+size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
 [node name="List" type="VBoxContainer" parent="Scroll"]
@@ -40,6 +39,3 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 10
 
-[node name="Spacer" type="Control" parent="."]
-layout_mode = 2
-size_flags_vertical = 3

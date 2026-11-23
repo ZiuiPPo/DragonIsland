@@ -8,9 +8,9 @@ extends Node
 ##     鸡舍界面会先让鸡走到巢箱、蹲下，再由界面调用 lay_egg()，蛋才出现；
 ##   · 食盆有上限，地上同时最多 6 枚蛋，避免无限堆积。
 ##
-## 只有鸡舍界面打开（ui_active=true）时本节点才推进时间：
-## 关掉页面后鸡、饥饿、产蛋计时全部暂停，避免不在场时「凭空多蛋」。
-## 界面负责让鸡走到食盆/巢箱，数据层只做数值与存档。
+## 时间一直推进（只要农场场景在跑）：关掉鸡舍页面后饥饿/产蛋计时继续走。
+## 但蛋仍然只能由界面驱动鸡走到落蛋点后调用 lay_egg() 才出现，不会凭空多蛋；
+## 关窗期间鸡会自动从食槽进食（不播走路动画），避免玩家看别的页面时饿死。
 
 signal changed
 ## 新蛋落地（参数：地上现有蛋数）
@@ -48,7 +48,7 @@ var trough_stock: int = 0
 var eggs_on_ground: int = 0
 var total_eggs: int = 0
 var total_collected: int = 0
-## 鸡舍窗口打开时为 true：只有这时才推进饥饿/产蛋计时，并由界面驱动鸡去食槽/巢箱。
+## 鸡舍窗口打开时为 true：此时由界面驱动鸡走到食槽/巢箱；关窗时数据层自动进食。
 var ui_active: bool = false
 
 var _rng := RandomNumberGenerator.new()
@@ -71,18 +71,26 @@ func _process(delta: float) -> void:
 func tick(delta: float) -> void:
 	if delta <= 0.0 or chickens.is_empty():
 		return
-	# 鸡舍页面没开就暂停：蛋必须由玩家看着鸡走到巢箱才出现
-	if not ui_active:
-		return
 	# 切场景 / 掉帧回来时不要一次跳太多
 	delta = minf(delta, 0.5)
+	var did_eat := false
 	for i in range(chickens.size()):
 		var chicken: Dictionary = chickens[i]
 		chicken["hunger"] = minf(HUNGER_MAX, float(chicken["hunger"]) + HUNGER_RATE * delta)
+		# 鸡舍关着时无人驱动走路：饿了直接从食槽吃一份，避免挂机回来全饿死。
+		# 打开页面后仍然必须由界面让鸡走到食槽才吃，保留「看着它吃」的表现。
+		if not ui_active and trough_stock > 0 and float(chicken["hunger"]) >= HUNGRY_AT:
+			trough_stock -= 1
+			chicken["hunger"] = maxf(0.0, float(chicken["hunger"]) - FEED_RESTORE)
+			chicken["lay_timer"] = _rng.randf_range(6.0, 12.0)
+			chicken_ate.emit(i)
+			did_eat = true
 		if float(chicken["hunger"]) >= LAY_HUNGER_LIMIT:
 			continue
 		chicken["lay_timer"] = maxf(0.0, float(chicken["lay_timer"]) - delta)
 		# 注意：这里只把计时器归零，不生成蛋；界面让鸡走到巢箱后会调 lay_egg()
+	if did_eat:
+		changed.emit()
 
 
 # ---------------- 投喂 ----------------

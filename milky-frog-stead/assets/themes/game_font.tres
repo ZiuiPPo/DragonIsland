@@ -1,5 +1,6 @@
-[gd_resource type="SystemFont" format=3]
+[gd_resource type="FontVariation" load_steps=2 format=3]
+
+[ext_resource type="FontFile" path="res://assets/fonts/LXGWWenKaiLite-Regular.ttf" id="1_font"]
 
 [resource]
-font_names = PackedStringArray("幼圆", "YouYuan", "Microsoft YaHei UI", "Microsoft YaHei", "sans-serif")
-allow_system_fallback = true
+base_font = ExtResource("1_font")

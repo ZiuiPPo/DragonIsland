@@ -139,6 +139,18 @@ func _run() -> void:
 	check("鸡舍有 3 只鸡", CoopState.chickens.size() == 3 and coop_window.chicken_visual_count() == 3)
 	check("鸡舍打开时由界面驱动进食", CoopState.ui_active)
 
+	# 鸡的漫游目标和食槽用餐点都必须夹在活动区内，否则会一直朝墙外走、被 clamp 在墙边
+	var walk_bounds: Rect2 = coop_window._walk_bounds()
+	var in_bounds := true
+	var test_view = coop_window._chickens[0]
+	for i in range(40):
+		coop_window._pick_wander_target(test_view, walk_bounds)
+		if not walk_bounds.grow(0.5).has_point(test_view.target):
+			in_bounds = false
+			break
+	check("漫游目标点不会跑到墙外", in_bounds)
+	check("食槽用餐点在活动区内", walk_bounds.grow(0.5).has_point(coop_window._trough_eat_point(0)))
+
 	Inventory.from_dict({"wheat": 10})
 	CoopState.reset()
 	await get_tree().process_frame
@@ -201,6 +213,12 @@ func _run() -> void:
 	CoopState.chickens[0]["lay_timer"] = 0.0
 	CoopState.tick(1.0)
 	check("关窗期间不会凭空多蛋", CoopState.eggs_on_ground == eggs_when_closed)
+	# 关窗后时间仍要走：饿了且食槽有料时，数据层自动进食（但没有走路动画）
+	CoopState.trough_stock = 3
+	CoopState.chickens[0]["hunger"] = 80.0
+	CoopState.tick(1.0)
+	check("关窗后饥饿仍在走且鸡会自己吃",
+		CoopState.chickens[0]["hunger"] < 80.0 and CoopState.trough_stock == 2)
 	check("鸡舍按 Esc 返回建筑中心", hub.visible and not coop_window.visible)
 
 	# ---------------- 存档 ----------------
