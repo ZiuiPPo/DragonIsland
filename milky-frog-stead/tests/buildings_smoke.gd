@@ -162,7 +162,17 @@ func _run() -> void:
 	check("鸡吃一份饲料后饥饿下降",
 		fed and CoopState.chickens[0]["hunger"] < 80.0 and CoopState.trough_stock == 2)
 
-	# 下蛋必须由鸡走到地板：计时到点只代表“准备好”，不会凭空多蛋
+	# 下蛋必须由鸡走到地板：计时到点只代表“准备好”，不会凭空多蛋。
+	# 先把其他鸡的时间线拉开，避免它们因为前面的跨天测试也变成“准备好”抢走下蛋位。
+	for i in range(CoopState.chickens.size()):
+		CoopState.chickens[i]["hunger"] = 0.0
+		CoopState.chickens[i]["lay_timer"] = 8.0
+	for view in coop_window._chickens:
+		view.mode = 3
+		view.timer = 0.2
+		view.lay_slot = -1
+	coop_window._laying_chicken = -1
+	coop_window._laying_slot = -1
 	CoopState.chickens[1]["hunger"] = 0.0
 	CoopState.chickens[1]["lay_timer"] = 0.0
 	check("喂饱的鸡准备好下蛋", CoopState.lay_ready(1))

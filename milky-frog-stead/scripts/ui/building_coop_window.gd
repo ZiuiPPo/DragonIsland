@@ -1312,6 +1312,9 @@ func _on_open() -> void:
 	CoopState.ui_active = true
 	_refresh()
 	_ensure_chickens_ready.call_deferred()
+	if CoopState.offline_feed_used > 0:
+		show_feedback("你不在时，鸡从仓库自动吃了 %d 份小麦。" % CoopState.offline_feed_used, UI.INK_SOFT)
+		CoopState.offline_feed_used = 0
 
 
 func _on_close() -> void:

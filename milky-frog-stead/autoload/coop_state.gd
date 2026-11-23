@@ -29,16 +29,20 @@ const MAX_CHICKENS: int = 6
 const TROUGH_MAX: int = 9
 const MAX_EGGS_ON_GROUND: int = 6
 const HUNGER_MAX: float = 100.0
-## 每秒饥饿增长
-const HUNGER_RATE: float = 1.1
+## 每游戏小时饥饿增长（时间统一走 DayNightCycle 的 day/hour，不再按真实秒数）
+const HUNGER_PER_HOUR: float = 1.5
 ## 饿到这个值会自己去食盆
 const HUNGRY_AT: float = 55.0
 ## 一份饲料能降多少饥饿
 const FEED_RESTORE: float = 32.0
 ## 太饿（>= 此值）就不下蛋
 const LAY_HUNGER_LIMIT: float = 75.0
-const LAY_INTERVAL_MIN: float = 20.0
-const LAY_INTERVAL_MAX: float = 34.0
+## 下蛋间隔，单位：游戏小时
+const LAY_INTERVAL_MIN: float = 6.0
+const LAY_INTERVAL_MAX: float = 10.0
+## 吃一份饲料后，下一枚蛋的最短/最长等待（游戏小时）
+const LAY_AFTER_FEED_MIN: float = 2.0
+const LAY_AFTER_FEED_MAX: float = 4.0
 const FEED_ITEM_ID: String = "wheat"
 const EGG_ITEM_ID: String = "egg"
 
@@ -50,8 +54,14 @@ var total_eggs: int = 0
 var total_collected: int = 0
 ## 鸡舍窗口打开时为 true：此时由界面驱动鸡走到食槽/巢箱；关窗时数据层自动进食。
 var ui_active: bool = false
+## 关窗期间自动从仓库补喂的次数（打开鸡舍时提示一次后清零）
+var offline_feed_used: int = 0
 
 var _rng := RandomNumberGenerator.new()
+## 上一次观察到的游戏时钟；时间菜单跳时段/跨天都由这里换算成游戏小时
+var _clock_node: Node = null
+var _last_clock_day: int = 1
+var _last_clock_hour: float = 9.0
 
 
 func _ready() -> void:
@@ -59,38 +69,76 @@ func _ready() -> void:
 	reset()
 
 
-func _process(delta: float) -> void:
+func _process(_delta: float) -> void:
 	# 只有农场场景在运行时才推进，主菜单里不偷跑
-	if get_tree().get_first_node_in_group("day_night_cycle") == null:
+	var clock := get_tree().get_first_node_in_group("day_night_cycle")
+	if clock == null:
+		_clock_node = null
 		return
-	tick(delta)
+	var hour_value: Variant = clock.get("hour")
+	var day_value: Variant = clock.get("day")
+	if hour_value == null or day_value == null:
+		return
+	var scene_day := maxi(1, int(day_value))
+	var scene_hour := clampf(float(hour_value), 0.0, 24.0)
+	if clock != _clock_node:
+		# 场景/读档后的第一次观察只做静默对齐，不补算离线时间
+		_clock_node = clock
+		_last_clock_day = scene_day
+		_last_clock_hour = scene_hour
+		return
+	var elapsed_hours := float(scene_day - _last_clock_day) * 24.0 + (scene_hour - _last_clock_hour)
+	if elapsed_hours < -0.001:
+		elapsed_hours += 24.0
+	_last_clock_day = scene_day
+	_last_clock_hour = scene_hour
+	if elapsed_hours > 0.0001:
+		advance_game_hours(elapsed_hours)
 
 
 # ---------------- 时间推进 ----------------
 
-func tick(delta: float) -> void:
-	if delta <= 0.0 or chickens.is_empty():
+## 推进游戏时间（单位：游戏小时）。时间菜单跳时段、自动跨天、关窗挂机都走这里。
+## 注意：只推进饥饿/产蛋计时；蛋仍由鸡舍界面里的鸡走到落蛋点后调用 lay_egg() 才生成。
+func advance_game_hours(hours: float) -> void:
+	if hours <= 0.0 or chickens.is_empty():
 		return
-	# 切场景 / 掉帧回来时不要一次跳太多
-	delta = minf(delta, 0.5)
-	var did_eat := false
-	for i in range(chickens.size()):
-		var chicken: Dictionary = chickens[i]
-		chicken["hunger"] = minf(HUNGER_MAX, float(chicken["hunger"]) + HUNGER_RATE * delta)
-		# 鸡舍关着时无人驱动走路：饿了直接从食槽吃一份，避免挂机回来全饿死。
-		# 打开页面后仍然必须由界面让鸡走到食槽才吃，保留「看着它吃」的表现。
-		if not ui_active and trough_stock > 0 and float(chicken["hunger"]) >= HUNGRY_AT:
-			trough_stock -= 1
-			chicken["hunger"] = maxf(0.0, float(chicken["hunger"]) - FEED_RESTORE)
-			chicken["lay_timer"] = _rng.randf_range(6.0, 12.0)
-			chicken_ate.emit(i)
-			did_eat = true
-		if float(chicken["hunger"]) >= LAY_HUNGER_LIMIT:
-			continue
-		chicken["lay_timer"] = maxf(0.0, float(chicken["lay_timer"]) - delta)
-		# 注意：这里只把计时器归零，不生成蛋；界面让鸡走到巢箱后会调 lay_egg()
-	if did_eat:
+	# 单次最多补算 30 天，避免异常大的时钟跳变把一帧卡死
+	var remaining := minf(hours, 24.0 * 30.0)
+	var did_event := false
+	while remaining > 0.0001:
+		var step := minf(remaining, 0.1)
+		remaining -= step
+		for i in range(chickens.size()):
+			var chicken: Dictionary = chickens[i]
+			chicken["hunger"] = minf(HUNGER_MAX, float(chicken["hunger"]) + HUNGER_PER_HOUR * step)
+			# 关窗时无人驱动走路：饿了先从食槽吃，食槽空再从仓库自动补一份。
+			# 打开鸡舍后，仍然必须由界面让鸡走到食槽才吃，保留「看着它吃」的表现。
+			if not ui_active and float(chicken["hunger"]) >= HUNGRY_AT:
+				var fed := false
+				if trough_stock > 0:
+					trough_stock -= 1
+					fed = true
+				elif Inventory.get_amount(FEED_ITEM_ID) > 0 and Inventory.consume(FEED_ITEM_ID, 1):
+					offline_feed_used += 1
+					fed = true
+				if fed:
+					chicken["hunger"] = maxf(0.0, float(chicken["hunger"]) - FEED_RESTORE)
+					# 注意：关窗自动喂食不重置产蛋计时。否则跳时间时每次饿了都把计时推后，
+					# 过完几天反而永远差一点、看不到「准备好了」的蛋。
+					chicken_ate.emit(i)
+					did_event = true
+			if float(chicken["hunger"]) >= LAY_HUNGER_LIMIT:
+				continue
+			chicken["lay_timer"] = maxf(0.0, float(chicken["lay_timer"]) - step)
+			# 注意：这里只把计时器归零，不生成蛋；界面让鸡走到巢箱后会调 lay_egg()
+	if did_event:
 		changed.emit()
+
+
+## 兼容旧测试/外部调用的名字：参数改为「游戏小时」
+func tick(hours: float) -> void:
+	advance_game_hours(hours)
 
 
 # ---------------- 投喂 ----------------
@@ -232,7 +280,7 @@ func from_dict(data: Dictionary) -> void:
 			if not String(row.get("name", "")).is_empty():
 				chicken["name"] = String(row["name"])
 			chicken["hunger"] = clampf(float(row.get("hunger", 30.0)), 0.0, HUNGER_MAX)
-			chicken["lay_timer"] = clampf(float(row.get("lay_timer", 20.0)), 0.0, LAY_INTERVAL_MAX)
+			chicken["lay_timer"] = clampf(float(row.get("lay_timer", LAY_INTERVAL_MAX)), 0.0, LAY_INTERVAL_MAX)
 		chickens.append(chicken)
 	trough_stock = clampi(int(data.get("trough_stock", 0)), 0, TROUGH_MAX)
 	eggs_on_ground = clampi(int(data.get("eggs_on_ground", 0)), 0, MAX_EGGS_ON_GROUND)
@@ -250,6 +298,8 @@ func reset() -> void:
 	total_eggs = 0
 	total_collected = 0
 	ui_active = false
+	offline_feed_used = 0
+	_clock_node = null
 	changed.emit()
 
 
@@ -277,7 +327,7 @@ func _new_chicken_data(chicken_name: String) -> Dictionary:
 	return {
 		"name": chicken_name,
 		"hunger": _rng.randf_range(18.0, 42.0),
-		"lay_timer": _rng.randf_range(12.0, 24.0),
+		"lay_timer": _rng.randf_range(LAY_INTERVAL_MIN, LAY_INTERVAL_MAX),
 	}
 
 
@@ -289,6 +339,8 @@ func _reset_counters_only() -> void:
 	total_eggs = 0
 	total_collected = 0
 	ui_active = false
+	offline_feed_used = 0
+	_clock_node = null
 # ---------------- 内部 ----------------
 
 func _eat_one(index: int) -> bool:
@@ -300,7 +352,7 @@ func _eat_one(index: int) -> bool:
 	var chicken: Dictionary = chickens[index]
 	chicken["hunger"] = maxf(0.0, float(chicken["hunger"]) - FEED_RESTORE)
 	# 吃饱后不久就会开始下蛋
-	chicken["lay_timer"] = _rng.randf_range(6.0, 12.0)
+	chicken["lay_timer"] = _rng.randf_range(LAY_AFTER_FEED_MIN, LAY_AFTER_FEED_MAX)
 	chicken_ate.emit(index)
 	changed.emit()
 	return true
