@@ -36,6 +36,8 @@ mono_crash.*.json
 !.vscode/settings.json
 !.vscode/launch.json
 .idea/
+.history/
+.fleet/
 *.sublime-workspace
 *.sublime-project
 *.code-workspace
@@ -69,3 +71,17 @@ $RECYCLE.BIN/
 .env
 .env.local
 *.local.cfg
+
+# ---------- Python（tools/ 下的生成脚本） ----------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# ---------- Node（若以后接前端预览/工具链） ----------
+node_modules/
+.npm-cache/
+
+# ---------- 仓库内产物（不属于源码） ----------
+.dsh-preview/
+backups/
